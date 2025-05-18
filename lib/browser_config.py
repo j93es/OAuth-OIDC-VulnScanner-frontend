@@ -15,10 +15,6 @@ def browser_config_kwargs(lang: str = "en_US") -> dict:
         ],
     }
 
-    browser_binary_path = os.getenv("BROWSER_BINARY_PATH")
-    if browser_binary_path:
-        browser_config_kwargs["browser_binary_path"] = browser_binary_path
-
     proxy_host = os.getenv("PROXY_HOST")
     proxy_port = os.getenv("PROXY_PORT")
     if proxy_host and proxy_port:
