@@ -1,50 +1,71 @@
 import asyncio
-from locale import locale_alias
+import json
+from typing import List
 from dotenv import load_dotenv
-from browser_use import Agent, Browser, BrowserConfig
-from browser_use.browser.context import BrowserContextConfig
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_text_splitters import Language
-from lib.ublock_init import ensure_ublock_origin
-from pathlib import Path
+from browser_use import Agent, Browser, BrowserConfig, Controller
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel
+from lib.browser_config import browser_config_kwargs
 import os
+import csv
 
 load_dotenv()
 
-UBLOCK_DIR = Path("./browser/ublock-origin")
+if os.getenv("GOOGLE_API_KEY") is None:
+    raise ValueError("GOOGLE_API_KEY environment variable is not set.")
 
-ensure_ublock_origin(UBLOCK_DIR)
+browser_config_kwargs = browser_config_kwargs()
 
 browser = Browser(
-    config=BrowserConfig(
-        browser_type="chromium",
-        headless=False,
-        disable_security=True,
-        proxy={"server": f"http://{os.getenv('PROXY_HOST')}:{os.getenv('PROXY_PORT')}"},
-
-        extra_browser_args=[
-            f"--load-extension={UBLOCK_DIR}",
-            f"--disable-extensions-except={UBLOCK_DIR}",
-            "--disable-web-security",
-            "--disable-features=IsolateOrigins,site-per-process",
-            "--disable-popup-blocking",
-            "--lang=en-US",
-        ],
-        context=BrowserContextConfig(
-            locale="en-US",
-            # You can also set 'accept_language' if supported:
-            accept_language="en-US,en"
-        ),
-    )
+    config=BrowserConfig(**browser_config_kwargs)
 )
 
+class OAuth(BaseModel):
+    source: str
+    provider: str
+    client_id: str
+    redirect_uri: str
+    response_type: str
+    scope: str
+    oauth_uri: str
+
+class OAuthExists(BaseModel):
+    oauth_providers: List[str]
+
+controller = Controller(output_model=OAuthExists)
+
+extend_planner_system_message = """
+{"oauth_providers": ["GitHub", "Google", "Facebook", "Twitter", "LinkedIn", "GitLab", "Bitbucket", "Discord", "Reddit", "Spotify", "Twitch", "Yahoo", "Amazon", "Microsoft", "Apple", ...]}
+
+The OAuth providers are available on the login page of the website.
+The user is interested in the OAuth providers available on the login page of the website.
+
+Passkey isn't a Oauth provider. Remove it from the list of OAuth providers.
+"""
+
 async def main():
+    url = "https://auth0.com"
     agent = Agent(
         browser=browser,
-        task="http://naver.com의 로그인 페이지를 찾아줘",
-        llm=ChatGoogleGenerativeAI(model="gemini-2.0-flash"),
+        task=f"Go to {url}, navigate to the login page, and identify the available OAuth providers. Passkey is not a valid OAuth provider.",
+        llm=ChatOpenAI(
+            model=os.getenv("OPENAI_MODEL"), 
+            temperature=0.0
+        ),
+        controller=controller,
+        extend_planner_system_message=extend_planner_system_message,
     )
 
-    await agent.run()
+    response = await agent.run()
+    result = json.loads(response.final_result())
+    print(result)
+    
+    # {"oauth_providers": ["GitHub", "Passkey"]} print
+    # Clear Terminal
+    print("\033c", end="")
+    print(f"🔗: {url}")
+    for provider in result['oauth_providers']:
+        print(provider)
+
 
 asyncio.run(main())

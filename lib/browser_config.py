@@ -1,0 +1,27 @@
+from browser_use.browser.context import BrowserContextConfig
+from pathlib import Path
+import os
+
+def browser_config_kwargs(lang: str = "en_US") -> dict:
+    browser_config_kwargs = {
+        "browser_type": "chromium",
+        "headless": False,
+        "disable_security": True,
+        "extra_browser_args": [
+            "--disable-web-security",
+            "--disable-features=IsolateOrigins,site-per-process",
+            "--disable-popup-blocking",
+            f"--lang={lang}",
+        ],
+    }
+
+    browser_binary_path = os.getenv("BROWSER_BINARY_PATH")
+    if browser_binary_path:
+        browser_config_kwargs["browser_binary_path"] = browser_binary_path
+
+    proxy_host = os.getenv("PROXY_HOST")
+    proxy_port = os.getenv("PROXY_PORT")
+    if proxy_host and proxy_port:
+        browser_config_kwargs["proxy"] = {"server": f"http://{proxy_host}:{proxy_port}"}
+
+    return browser_config_kwargs
