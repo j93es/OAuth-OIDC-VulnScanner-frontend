@@ -2,8 +2,11 @@ from browser_use.browser.context import BrowserContextConfig
 from pathlib import Path
 import os
 
-def browser_config_kwargs(lang: str = "en_US") -> dict:
-    browser_config_kwargs = {
+from typing import Any
+
+def browser_config_kwargs(lang: str = "en_US") -> dict[str, Any]:
+    browser_config_kwargs: dict[str, Any] = {
+        "keep_alive": True,
         "browser_type": "chromium",
         "headless": False,
         "disable_security": True,

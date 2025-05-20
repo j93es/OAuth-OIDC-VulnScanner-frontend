@@ -1,3 +1,6 @@
+# 테스트한 영상
+https://f.imnya.ng/.whs/teamproject/
+
 # 참고하면 좋을만한 것
 - [ ] 일부 웹사이트는 사용자의 언어에 따라 OAuth 옵션을 바꾸기도 합니다.
 - [ ] https://docs.browser-use.com/customize/custom-functions
