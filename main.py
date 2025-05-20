@@ -11,8 +11,10 @@ import csv
 
 load_dotenv()
 
-if os.getenv("GOOGLE_API_KEY") is None:
-    raise ValueError("GOOGLE_API_KEY environment variable is not set.")
+if os.getenv("OPENAI_API_KEY") is None:
+    raise ValueError("OPENAI_API_KEY environment variable not set.")
+if os.getenv("OPENAI_MODEL") is None:
+    raise ValueError("OPENAI_MODEL environment variable not set.")
 
 browser_config_kwargs = browser_config_kwargs()
 
@@ -57,7 +59,10 @@ async def main():
     )
 
     response = await agent.run()
-    result = json.loads(response.final_result())
+    final_result = response.final_result()
+    if final_result is None:
+        raise ValueError("final_result() returned None")
+    result = json.loads(final_result)
     print(result)
     
     # {"oauth_providers": ["GitHub", "Passkey"]} print

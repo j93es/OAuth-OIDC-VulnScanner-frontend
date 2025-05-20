@@ -15,7 +15,7 @@ venv와 패키지가 설치가 됩니다.
 browser_use가 Playwright에 대한 의존성이 있어 브라우저 설치가 필요합니다
 
 ```
-playwright install chromium
+playwright install chromium --with-deps --no-shell
 ```
 
 다음과 같은 명령어로 실행합니다.
