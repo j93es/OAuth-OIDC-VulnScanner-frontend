@@ -171,7 +171,8 @@ async def loop():
 "wildwoodcasino.net",
 "accounts.firefox.com",
 "addons.allizom.org",
-"api.profiler.firefox.com"]
+"api.profiler.firefox.com"
+]
 
     for url in target_list:
         await scan_one_url(f'https://{url}')
