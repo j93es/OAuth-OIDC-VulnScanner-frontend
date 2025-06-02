@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import csv
 from typing import List
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -8,38 +9,18 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from lib.browser_config import browser_config_kwargs
-import csv
+from lib.is_html import is_html_url
 
 load_dotenv()
 
-# Check environment variables
 if os.getenv("GOOGLE_API_KEY") is None:
-    raise ValueError("OPENAI_API_KEY environment variable not set.")
+    raise ValueError("GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
 if os.getenv("GOOGLE_MODEL") is None:
-    raise ValueError("OPENAI_MODEL environment variable not set.")
+    raise ValueError("GOOGLE_MODEL 환경변수가 설정되지 않았습니다.")
 if os.getenv("GOOGLE_PLANNER_MODEL") is None:
-    raise ValueError("OPENAI_PLANNER_MODEL environment variable not set.")
+    raise ValueError("GOOGLE_PLANNER_MODEL 환경변수가 설정되지 않았습니다.")
 
-# Configure browser
-browser = Browser(
-    config=BrowserConfig(**browser_config_kwargs())
-)
-
-# Set browser context
-context = BrowserContext(
-    browser=browser,
-    config=BrowserContextConfig(
-        wait_for_network_idle_page_load_time=3.0,
-        window_width=1600,
-        window_height=900,
-        locale='en-US',
-        highlight_elements=True,
-        viewport_expansion=500,
-        keep_alive=True
-    )
-)
-
-# Output model: each result is one OAuth entry with metadata
+# 출력 모델
 class OAuth(BaseModel):
     provider: str
     oauth_uri: str
@@ -47,51 +28,77 @@ class OAuth(BaseModel):
 class OAuthList(BaseModel):
     oauth_providers: List[OAuth]
 
-controller = Controller(output_model=OAuthList)
+# Controller는 매번 새로 생성해도 무방합니다.
+def make_controller():
+    return Controller(output_model=OAuthList)
 
 # Extended planner prompt
 extend_planner_system_message = """
-🎯 Your mission is to collect the real OAuth login URLs from the website.
+🎯 Mission: Collect Initial SSO Redirect URLs (For Browser Automation)
 
-1. First, go to the website’s **login page**.
-2. On the login page, look for OAuth login buttons. These usually say things like **"Continue with Google"**, **"Sign in with GitHub"**, etc.
-3. ⚠️ **DO NOT collect or include "Passkey"** — it is NOT an OAuth provider.
+1. Locate the Login Page
+- Navigate to the **client (non-enterprise)** login page.
+- If a **privacy policy / cookie / consent popup** appears, **dismiss** or **close** it before continuing.
 
----
+2. On the Login Page
+- Look for buttons like:
+  - "Continue with Google"
+  - "Sign in with GitHub"
+  - "Login with Naver"
+- ✅ Only proceed if **you clearly see a real SSO (social login) button**.
+- ❌ Ignore or exclude:
+  - Buttons with "Passkey"
+  - Username/password fields
+  - Email-based login
+  - Login via certificate or mobile verification
+  - Any non-OAuth login options
 
-✅ For EACH OAuth button you find:
+3. If at least one valid SSO login button is found:
+- Try to **open it in a new tab**. If that’s not possible, **click it directly**.
+- Capture the **first URL that the browser is redirected to** include query string. This URL should:
+  ✅ Look like: `https://example.com/auth/google`
+  ❌ Do NOT collect OAuth provider endpoint like: `https://accounts.google.com/...`
+- Return the results in the following format:
+    [
+      {
+        "provider": "Google",
+        "oauth_uri": "https://example.com/auth/google?include_all_params=..."
+      },
+      {
+        "provider": "GitHub",
+        "oauth_uri": "https://example.com/auth/github?include_all_params=..."
+      }
+    ]
 
-- **Try opening it in a new tab**. If it redirects to an OAuth URL (e.g. `https://accounts.google.com/...`, `https://github.com/login/oauth/...`), copy that **exact final URL**.
-- If it **doesn’t open in a new tab**, **click the button** and wait for the redirect to happen.
-  - As soon as you see the redirected URL with **client_id**, **redirect_uri**, etc., copy that **entire URL without changing or hiding anything**.
-  - Then come back to the original tab (if needed) and continue with the next provider.
-
----
-
-💡 **Do not guess** the OAuth URLs — only collect them by actually interacting with the buttons.
-
-🚫 **Do not redact or mask any part** of the URL, including `client_id`, `redirect_uri`, `state`, or any other parameters. Record them exactly as they appear.
-
-✅ Return a list of all OAuth providers and their **full raw redirect URLs** in this exact format:
-
-```json
-[
-  {
-    "provider": "Google",
-    "oauth_uri": "https://accounts.google.com/o/oauth2/v2/auth?client_id=...&redirect_uri=...&...",
-  },
-  {
-    "provider": "GitHub",
-    "oauth_uri": "https://github.com/login/oauth/authorize?client_id=...&redirect_uri=...",
-  }
-]
-```
+4. If No SSO Login Buttons Are Found or an Error Occurs:
+- ❌ Terminate the process immediately.
+- Return an empty list: `[]`
 """
 
-# Main async runner
-async def main():
-    url = "https://git.imnya.ng"
+# ── URL별로 Browser를 새로 띄우는 함수 ──
+async def scan_one_url(url: str):
+    # 1) URL이 HTML 페이지인지 확인
+    if not is_html_url(url):
+        print(f"❌ {url} 은(는) HTML이 아닙니다. 스킵합니다.")
+        return
 
+    # 2) Browser + Context 생성
+    browser = Browser(config=BrowserConfig(**browser_config_kwargs()))
+    context = BrowserContext(
+        browser=browser,
+        config=BrowserContextConfig(
+            wait_for_network_idle_page_load_time=3.0,
+            window_width=1600,
+            window_height=900,
+            locale='en-US',
+            highlight_elements=True,
+            viewport_expansion=500,
+            keep_alive=False
+        )
+    )
+
+    # 3) Agent, Controller 생성
+    controller = make_controller()
     agent = Agent(
         browser_context=context,
         browser=browser,
@@ -102,26 +109,20 @@ async def main():
         extend_planner_system_message=extend_planner_system_message,
     )
 
-    # Run the agent
+    # 4) 실제 스캔 실행
     response = await agent.run()
     final_result = response.final_result()
     if final_result is None:
-        raise ValueError("final_result() returned None")
+        raise ValueError("final_result()가 None을 반환했습니다.")
 
     data = json.loads(final_result)
-
     try:
         oauth_entries: List[OAuth] = [OAuth(**entry) for entry in data["oauth_providers"]]
     except Exception as e:
-        raise ValueError(f"Failed to parse result: {e}\nRaw result: {final_result}")
+        raise ValueError(f"결과 파싱 실패: {e}\n원본 결과: {final_result}")
 
-
-    # Clear terminal
-    #print("\033c", end="")
-    print("-" * 20)
-
-    print(f"Raw result: {final_result}")
-
+    # 5) 결과 출력
+    print("-" * 50)
     print(f"🔗 Scanned URL: {url}\n")
     print("🔐 Detected OAuth Providers and URLs:")
     for entry in oauth_entries:
@@ -129,10 +130,10 @@ async def main():
             print(f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n")
         else:
             print(f"- {entry.provider}: {entry.oauth_uri}")
+    print("-" * 50)
 
-    # Save the result to CSV (append mode, so you can continue later)
-    # 이거 좀 이상한데 나중에 고쳐야 할듯 파일이 수정이 안됨
-    csv_file = "oauth_providers.csv"
+    # 6) CSV에 저장 (append)
+    csv_file = "./oauth_providers.csv"
     file_exists = os.path.isfile(csv_file)
     with open(csv_file, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -140,13 +141,41 @@ async def main():
             writer.writerow(["issuer", "provider", "oauth_uri"])
         for entry in oauth_entries:
             writer.writerow([url, entry.provider, entry.oauth_uri])
-    print(f"\n✅ OAuth providers saved to {csv_file}")
+    print(f"✅ OAuth providers saved to {csv_file}\n")
 
-    # Save the result to JSON
-    with open(f"oauth_providers_{url}.json", "w") as f:
-        json.dump(data, f, indent=2)
-    print(f"✅ OAuth providers saved to oauth_providers_{url}.json")
+    # 7) Agent와 Browser 닫기
+    await agent.close()           # Agent 내부 작업 정리
+    await context.close()         # 브라우저 컨텍스트 종료 (탭/세션 닫기)
+    await browser.close()         # 실제 브라우저 프로세스 종료
 
+# ── 인터랙티브 입력 루프 ──
+async def loop():
+    
+    target_list = [
+# "chefsdinners.com",
+# "dungeonofdoomkemah.com",
+# "fertittaentertainmentinc.com",
+# "galvestonholidayinn.com",
+# "goldennugget.com",
+# "hunttinginn.com",
+# "kemahbeerfest.com",
+# "lilliesasiancuisine.com",
+# "muer.com",
+# "pleasurepier.com",
+# "r-u-i.com",
+# "sanluisresort.com",
+"shoppostoak.com",
+"thepostoak.com",
+"thepostoakhotel.com",
+"tilmanfertitta.com",
+"wildwoodcasino.net",
+"accounts.firefox.com",
+"addons.allizom.org",
+"api.profiler.firefox.com"]
 
-# Run it
-asyncio.run(main())
+    for url in target_list:
+        await scan_one_url(f'https://{url}')
+
+# ── 진입점 ──
+if __name__ == "__main__":
+    asyncio.run(loop())
