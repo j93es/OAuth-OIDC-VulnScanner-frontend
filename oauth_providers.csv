@@ -1,3 +1,0 @@
-issuer,provider,oauth_uri
-https://velog.io,Google,https://v3.velog.io/api/auth/v3/social/callback/google
-https://velog.io,GitHub,https://v2.velog.io/api/v2/auth/social/callback/github?next=

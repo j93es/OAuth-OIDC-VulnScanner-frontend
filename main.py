@@ -151,28 +151,7 @@ async def scan_one_url(url: str):
 # ── 인터랙티브 입력 루프 ──
 async def loop():
     
-    target_list = [
-# "chefsdinners.com",
-# "dungeonofdoomkemah.com",
-# "fertittaentertainmentinc.com",
-# "galvestonholidayinn.com",
-# "goldennugget.com",
-# "hunttinginn.com",
-# "kemahbeerfest.com",
-# "lilliesasiancuisine.com",
-# "muer.com",
-# "pleasurepier.com",
-# "r-u-i.com",
-# "sanluisresort.com",
-"shoppostoak.com",
-"thepostoak.com",
-"thepostoakhotel.com",
-"tilmanfertitta.com",
-"wildwoodcasino.net",
-"accounts.firefox.com",
-"addons.allizom.org",
-"api.profiler.firefox.com"
-]
+    target_list = ["naver.com"]
 
     for url in target_list:
         await scan_one_url(f'https://{url}')
