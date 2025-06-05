@@ -10,6 +10,7 @@ from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from lib.browser_config import browser_config_kwargs
 from lib.is_html import is_html_url
+from lib.read_txt import read_lines_between
 
 load_dotenv()
 
@@ -39,6 +40,15 @@ extend_planner_system_message = """
 1. Locate the Login Page
 - Navigate to the **client (non-enterprise)** login page.
 - If a **privacy policy / cookie / consent popup** appears, **dismiss** or **close** it before continuing.
+- ❌ If the page is blocked (e.g., by a firewall, CAPTCHA challenge, or any access restriction), terminate the process immediately and return:
+    ```json
+    [
+        {
+            "provider": "Blocked",
+            "oauth_uri": "-"
+        }
+    ]
+    ```
 
 2. On the Login Page
 - Look for buttons like:
@@ -58,6 +68,7 @@ extend_planner_system_message = """
 - Capture the **first URL that the browser is redirected to** include query string. This URL should:
   ✅ Look like: `https://example.com/auth/google`
   ❌ Do NOT collect OAuth provider endpoint like: `https://accounts.google.com/...`
+- ❌ If you notice any **repeated action** (for example, opening or clicking the same SSO button more than once, or looping between pages), **terminate the process immediately** and return an empty list: `[]`.
 - Return the results in the following format:
     [
       {
@@ -151,7 +162,12 @@ async def scan_one_url(url: str):
 # ── 인터랙티브 입력 루프 ──
 async def loop():
     
-    target_list = ["naver.com"]
+    target_list = read_lines_between(
+        filepath="./domains.txt",
+        start_line=12187,
+        end_line=12200  # 원하는 범위로 조정 가능
+    )
+    
 
     for url in target_list:
         await scan_one_url(f'https://{url}')
