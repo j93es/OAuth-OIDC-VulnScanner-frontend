@@ -15,6 +15,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let total_count = domains.len();
     let counter = Arc::new(AtomicUsize::new(0));
+    let html_count = Arc::new(AtomicUsize::new(0));
+    let failed_count = Arc::new(AtomicUsize::new(0));
+    let non_html_count = Arc::new(AtomicUsize::new(0));
 
     let output_file = OpenOptions::new()
         .create(true)
@@ -34,7 +37,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     domains.par_iter().for_each(|domain| {
         let current = counter.fetch_add(1, Ordering::SeqCst) + 1;
         let url = format!("https://{}", domain);
-        println!("[{}/{}] Checking {}", current, total_count, url);
 
         let response = client.get(&url).send();
 
@@ -46,20 +48,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if let Ok(mut file) = output.lock() {
                                 writeln!(file, "{}", domain).ok();
                             }
+                            html_count.fetch_add(1, Ordering::SeqCst);
                             println!("[{}/{}] ✅ HTML: {}", current, total_count, domain);
                         } else {
+                            non_html_count.fetch_add(1, Ordering::SeqCst);
                             println!("[{}/{}] ❌ Not HTML: {} ({})", current, total_count, domain, content_type_str);
                         }
                     }
                 } else {
+                    non_html_count.fetch_add(1, Ordering::SeqCst);
                     println!("[{}/{}] ❌ No Content-Type: {}", current, total_count, domain);
                 }
             }
             Err(_) => {
+                failed_count.fetch_add(1, Ordering::SeqCst);
                 println!("[{}/{}] ⚠️ Failed to connect: {}", current, total_count, domain);
             }
         }
     });
+
+    // Final results
+    let html_final = html_count.load(Ordering::SeqCst);
+    let failed_final = failed_count.load(Ordering::SeqCst);
+    let non_html_final = non_html_count.load(Ordering::SeqCst);
+
+    println!("\n=== Final Results ===");
+    println!("📊 Total domains: {}", total_count);
+    println!("✅ HTML domains: {} ({:.1}%)", html_final, (html_final as f64 / total_count as f64) * 100.0);
+    println!("❌ Non-HTML domains: {} ({:.1}%)", non_html_final, (non_html_final as f64 / total_count as f64) * 100.0);
+    println!("⚠️ Failed connections: {} ({:.1}%)", failed_final, (failed_final as f64 / total_count as f64) * 100.0);
+    println!("💾 HTML domains saved to: domains-filtered.txt");
 
     Ok(())
 }
