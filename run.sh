@@ -35,7 +35,8 @@ while [ "$current" -le "$END_LINE" ]; do
   # -f DOMAIN_FILE: 도메인 목록 파일 경로
   # -s current  : 읽기 시작 줄
   # -e chunk_end: 읽기 끝 줄
-  uv run "$PYTHON_SCRIPT" -f "$DOMAIN_FILE" -s "$current" -e "$chunk_end"
+  # -skh True False: 추가 옵션
+  uv run "$PYTHON_SCRIPT" -f "$DOMAIN_FILE" -s "$current" -e "$chunk_end" -skh $3
 
   # 다음 청크의 시작 값 설정
   current=$(( chunk_end + 1 ))

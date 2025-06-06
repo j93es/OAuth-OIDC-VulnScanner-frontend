@@ -100,9 +100,9 @@ extend_planner_system_message = """
 """
 
 # ── URL별로 Browser를 새로 띄우는 함수 ──
-async def scan_one_url(url: str):
+async def scan_one_url(url: str, skip_html_check: bool = False):
     # 1) URL이 HTML 페이지인지 확인
-    if not is_html_url(url):
+    if not is_html_url(url) and not skip_html_check:
         print(f"❌ {url} 은(는) HTML이 아닙니다. 스킵합니다.")
         return
 
@@ -181,7 +181,7 @@ async def scan_one_url(url: str):
         await context.close()
         await browser.close()
 
-async def loop(filepath: str, start_line: int, end_line: int):
+async def loop(filepath: str, start_line: int, end_line: int, skip_html_check: bool = False):
     # 인자값으로 받은 파일 경로와 줄 범위를 통해 도메인 리스트 생성
     target_list = read_lines_between(
         filepath=filepath,
@@ -196,7 +196,7 @@ async def loop(filepath: str, start_line: int, end_line: int):
         # scan_one_url은 외부에 정의된 비동기 함수라고 가정합니다.
         # 실제로 scan_one_url이 정의된 위치를 import하거나
         # 모듈 수준에 구현해두셔야 합니다.
-        await scan_one_url(f'https://{url}')
+        await scan_one_url(f'https://{url}', skip_html_check=skip_html_check)
 
 
 def main():
@@ -224,6 +224,12 @@ def main():
         required=True,
         help="읽기 종료 줄 번호 (1-based)"
     )
+    parser.add_argument(
+        "-skh", "--skip-html-check",
+        type=bool,
+        default=False,
+        help="HTML 페이지 체크를 건너뛰고 모든 URL을 스캔합니다. (기본값: False)"
+    )
 
     args = parser.parse_args()
 
@@ -231,7 +237,8 @@ def main():
     asyncio.run(loop(
         filepath=args.file,
         start_line=args.start,
-        end_line=args.end
+        end_line=args.end,
+        skip_html_check=args.skip_html_check
     ))
 
 
