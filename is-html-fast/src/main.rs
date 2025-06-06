@@ -1,67 +1,64 @@
-use std::fs::File;
-use std::io::Write;
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader, Write};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-use futures::stream::{FuturesUnordered, StreamExt};
-use reqwest::Client;
-use tokio::fs;
-use tokio::io::AsyncBufReadExt;
+use rayon::prelude::*;
+use reqwest::blocking::Client;
+use reqwest::header::CONTENT_TYPE;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let file = fs::File::open("domains.txt").await?;
-    let reader = tokio::io::BufReader::new(file);
-    let mut lines = reader.lines();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let input_file = File::open("domains.txt")?;
+    let reader = BufReader::new(input_file);
+    let domains: Vec<String> = reader.lines().filter_map(Result::ok).collect();
 
-    let client = Client::builder()
-        .timeout(Duration::from_secs(5))
-        .build()?;
+    let total_count = domains.len();
+    let counter = Arc::new(AtomicUsize::new(0));
 
-    let mut tasks = FuturesUnordered::new();
+    let output_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open("domains-filtered.txt")?;
 
-    while let Some(line) = lines.next_line().await? {
-        let client = client.clone();
-        let domain = line.clone();
-        tasks.push(tokio::spawn(async move {
-            let url = format!("https://{}", domain);
-            let resp = client.get(&url).send().await;
+    let output = Arc::new(Mutex::new(output_file));
 
-            match resp {
-                Ok(resp) => {
-                    if let Some(content_type) = resp.headers().get(reqwest::header::CONTENT_TYPE) {
-                        if let Ok(content_type_str) = content_type.to_str() {
-                            if content_type_str.starts_with("text/html") {
-                                println!("✅ HTML: {}", domain);
-                                return Some(domain);
-                            } else {
-                                println!("❌ Not HTML: {} ({})", domain, content_type_str);
+    let client = Arc::new(
+        Client::builder()
+            .timeout(Duration::from_secs(5))
+            .build()?,
+    );
+
+    domains.par_iter().for_each(|domain| {
+        let current = counter.fetch_add(1, Ordering::SeqCst) + 1;
+        let url = format!("https://{}", domain);
+        println!("[{}/{}] Checking {}", current, total_count, url);
+
+        let response = client.get(&url).send();
+
+        match response {
+            Ok(resp) => {
+                if let Some(content_type) = resp.headers().get(CONTENT_TYPE) {
+                    if let Ok(content_type_str) = content_type.to_str() {
+                        if content_type_str.starts_with("text/html") {
+                            if let Ok(mut file) = output.lock() {
+                                writeln!(file, "{}", domain).ok();
                             }
+                            println!("[{}/{}] ✅ HTML: {}", current, total_count, domain);
+                        } else {
+                            println!("[{}/{}] ❌ Not HTML: {} ({})", current, total_count, domain, content_type_str);
                         }
-                    } else {
-                        println!("❌ No Content-Type: {}", domain);
                     }
-                }
-                Err(_) => {
-                    println!("⚠️ Failed to connect: {}", domain);
+                } else {
+                    println!("[{}/{}] ❌ No Content-Type: {}", current, total_count, domain);
                 }
             }
-
-            None
-        }));
-    }
-
-    let mut results = Vec::new();
-    while let Some(res) = tasks.next().await {
-        if let Ok(Some(domain)) = res {
-            results.push(domain);
+            Err(_) => {
+                println!("[{}/{}] ⚠️ Failed to connect: {}", current, total_count, domain);
+            }
         }
-    }
-
-    // 📝 한 번에 출력
-    let mut output = File::create("domains-filtered.txt")?;
-    for domain in results {
-        writeln!(output, "{}", domain)?;
-    }
+    });
 
     Ok(())
 }
