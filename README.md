@@ -4,11 +4,12 @@
 - [ ] https://docs.browser-use.com/customize/custom-functions
 
 https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt
-이거 도메인 리스트 HTML만 필터링 해둔거니까 이거 쓰세요.
+이거 도메인 리스트 HTML만 필터링 해둔거니까 이거 쓰면 좋을 것 같습니다.
 
 # 환경 설정
 
 이 프로젝트는 [uv](https://docs.astral.sh/uv/getting-started/installation/)라는 Python 패키지 관리자를 사용하여 설정해야합니다.
+또한 [oauth-backend](https://github.com/j93es/oauth-backend)가 설정된 상태여야만 합니다.
 
 uv 설치 후 다음과 같은 명령어를 입력합니다.
 
@@ -30,25 +31,19 @@ playwright install chromium --with-deps --no-shell
 uv run main.py
 ```
 
-Environment에는 다음과 같은 값이 들어갑니다.
+Environment는 .env.example에 따라 설정되어야합니다.
 
-```
-ANONYMIZED_TELEMETRY=false
-
-GOOGLE_API_KEY=your_openai_api_key_here
-GOOGLE_MODEL=gemini-2.5-flash-preview-04-17
-GOOGLE_PLANNER_MODEL=gemini-2.0-flash-lite
-
-# 선택
-PROXY_HOST=127.0.0.1
-PROXY_PORT=8080
-```
-
-`PROXY_HOST`와 `PROXY_PORT`는 만약 Caido를 사용 중일 시 환경에 맞게 설정 후 설정합니다.
+.env.example을 .env로 복사하여서 사용해주세요.
 
 # 실행
 
 ```sh
-# ./run.sh {domains.txt 시작 줄} {domains.txt 끝 줄}
-./run.sh 12540 13000
+# ./run.sh {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
+./run.sh 12540 13000 False
+```
+
+
+```pwsh
+# ./run.ps1 {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
+./run.ps1 12540 13000 False
 ```

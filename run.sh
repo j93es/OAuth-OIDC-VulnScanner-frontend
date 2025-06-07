@@ -11,6 +11,11 @@ DOMAIN_FILE="./domains.txt"
 CHUNK_SIZE=10
 # ─────────────
 
+# https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt
+# domains.txt 파일을 다운로드하는 명령어
+
+curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o $DOMAIN_FILE
+
 # 인자 개수 확인
 if [ $# -ne 2 ]; then
   echo "Usage: $0 <start_line> <end_line>"

@@ -9,6 +9,11 @@ $DOMAIN_FILE = "./domains.txt"
 $CHUNK_SIZE = 10
 # ─────────────
 
+# https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt
+# domains.txt 파일을 다운로드하는 명령어
+
+curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o $DOMAIN_FILE
+
 # 인자 개수 확인 (2개 또는 3개)
 if ($args.Count -lt 2 -or $args.Count -gt 3) {
     Write-Host "Usage: $($MyInvocation.MyCommand.Name) <start_line> <end_line> [skip_header]"
