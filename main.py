@@ -23,7 +23,7 @@ if os.getenv("GOOGLE_MODEL") is None:
 if os.getenv("GOOGLE_PLANNER_MODEL") is None:
     raise ValueError("GOOGLE_PLANNER_MODEL 환경변수가 설정되지 않았습니다.")
 
-backend_url = os.getenv("BACKEND_URL", "http://localhost:4040")
+backend_url = os.getenv("BACKEND_URL", "http://localhost:11081")
 
 # 출력 모델
 class OAuth(BaseModel):
