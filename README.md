@@ -9,6 +9,7 @@ https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt
 # 환경 설정
 
 이 프로젝트는 [uv](https://docs.astral.sh/uv/getting-started/installation/)라는 Python 패키지 관리자를 사용하여 설정해야합니다.
+또한 [oauth-backend](https://github.com/j93es/oauth-backend)가 설정된 상태여야만 합니다.
 
 uv 설치 후 다음과 같은 명령어를 입력합니다.
 
