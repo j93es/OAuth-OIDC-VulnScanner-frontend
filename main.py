@@ -3,6 +3,7 @@ import json
 import os
 import csv
 import argparse
+import requests
 from typing import List
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -21,6 +22,8 @@ if os.getenv("GOOGLE_MODEL") is None:
     raise ValueError("GOOGLE_MODEL 환경변수가 설정되지 않았습니다.")
 if os.getenv("GOOGLE_PLANNER_MODEL") is None:
     raise ValueError("GOOGLE_PLANNER_MODEL 환경변수가 설정되지 않았습니다.")
+
+backend_url = os.getenv("BACKEND_URL", "http://localhost:4040")
 
 # 출력 모델
 class OAuth(BaseModel):
@@ -105,7 +108,24 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
     if not is_html_url(url) and not skip_html_check:
         print(f"❌ {url} 은(는) HTML이 아닙니다. 스킵합니다.")
         return
+        
+    target_url = url if url.startswith("http") else f"https://{url}"
+    print(f"🚀 Starting scan for: {target_url}")
 
+    # Backend에 스캔 시작을 알림
+    try:
+        response = requests.post(f"{backend_url}/start", params={"url": target_url}, timeout=5)
+        if response.status_code == 200:
+            print(f"✅ Backend notified: {response.text}")
+        else:
+            print(f"⚠️ Backend notification failed: {response.status_code}")
+    except requests.exceptions.ConnectionError:
+        print(f"⚠️ Backend server not available at {backend_url}. Continuing without notification.")
+    except requests.exceptions.Timeout:
+        print(f"⚠️ Backend notification timed out. Continuing without notification.")
+    except Exception as e:
+        print(f"⚠️ Failed to notify backend: {e}")
+    
     # 2) Browser + Context 생성
     browser = Browser(config=BrowserConfig(**browser_config_kwargs()))
     context = BrowserContext(
@@ -196,7 +216,7 @@ async def loop(filepath: str, start_line: int, end_line: int, skip_html_check: b
         # scan_one_url은 외부에 정의된 비동기 함수라고 가정합니다.
         # 실제로 scan_one_url이 정의된 위치를 import하거나
         # 모듈 수준에 구현해두셔야 합니다.
-        await scan_one_url(f'https://{url}', skip_html_check=skip_html_check)
+        await scan_one_url(f'http://{url}', skip_html_check=skip_html_check)
 
 
 def main():
