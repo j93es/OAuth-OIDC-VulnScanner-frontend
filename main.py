@@ -4,19 +4,20 @@ import os
 from typing import List
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from lib.browser_config import browser_config_kwargs
+import csv
 
 load_dotenv()
 
 # Check environment variables
-if os.getenv("OPENAI_API_KEY") is None:
+if os.getenv("GOOGLE_API_KEY") is None:
     raise ValueError("OPENAI_API_KEY environment variable not set.")
-if os.getenv("OPENAI_MODEL") is None:
+if os.getenv("GOOGLE_MODEL") is None:
     raise ValueError("OPENAI_MODEL environment variable not set.")
-if os.getenv("OPENAI_PLANNER_MODEL") is None:
+if os.getenv("GOOGLE_PLANNER_MODEL") is None:
     raise ValueError("OPENAI_PLANNER_MODEL environment variable not set.")
 
 # Configure browser
@@ -89,14 +90,14 @@ extend_planner_system_message = """
 
 # Main async runner
 async def main():
-    url = "https://auth0.com"
+    url = "https://git.imnya.ng"
 
     agent = Agent(
         browser_context=context,
         browser=browser,
         task=f"Go to {url}, navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
-        llm=ChatOpenAI(model=os.getenv("OPENAI_MODEL")),
-        planner_llm=ChatOpenAI(model=os.getenv("OPENAI_PLANNER_MODEL")),
+        llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_MODEL")),
+        planner_llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_PLANNER_MODEL")),
         controller=controller,
         extend_planner_system_message=extend_planner_system_message,
     )
@@ -128,6 +129,23 @@ async def main():
             print(f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n")
         else:
             print(f"- {entry.provider}: {entry.oauth_uri}")
+
+    # Save the result to CSV (append mode, so you can continue later)
+    # 이거 좀 이상한데 나중에 고쳐야 할듯 파일이 수정이 안됨
+    csv_file = "oauth_providers.csv"
+    file_exists = os.path.isfile(csv_file)
+    with open(csv_file, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["issuer", "provider", "oauth_uri"])
+        for entry in oauth_entries:
+            writer.writerow([url, entry.provider, entry.oauth_uri])
+    print(f"\n✅ OAuth providers saved to {csv_file}")
+
+    # Save the result to JSON
+    with open(f"oauth_providers_{url}.json", "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"✅ OAuth providers saved to oauth_providers_{url}.json")
 
 
 # Run it
