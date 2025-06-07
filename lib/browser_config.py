@@ -15,12 +15,15 @@ def browser_config_kwargs(lang: str = "en_US") -> dict[str, Any]:
             "--disable-features=IsolateOrigins,site-per-process",
             "--disable-popup-blocking",
             f"--lang={lang}",
+            "--ignore-certificate-errors"
         ],
     }
 
     proxy_host = os.getenv("PROXY_HOST")
     proxy_port = os.getenv("PROXY_PORT")
     if proxy_host and proxy_port:
-        browser_config_kwargs["proxy"] = {"server": f"http://{proxy_host}:{proxy_port}"}
+        browser_config_kwargs["extra_browser_args"].append(
+            f"--proxy-server=http={proxy_host}:{proxy_port};https={proxy_host}:{proxy_port}"
+        )
 
     return browser_config_kwargs

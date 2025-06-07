@@ -6,6 +6,8 @@ dist/
 wheels/
 *.egg-info
 
+oauth_providers.csv
+
 # Virtual environments
 .venv
 
