@@ -3,6 +3,9 @@
 - [ ] 일부 웹사이트는 사용자의 언어에 따라 OAuth 옵션을 바꾸기도 합니다.
 - [ ] https://docs.browser-use.com/customize/custom-functions
 
+https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt
+이거 도메인 리스트 HTML만 필터링 해둔거니까 이거 쓰세요.
+
 # 환경 설정
 
 이 프로젝트는 [uv](https://docs.astral.sh/uv/getting-started/installation/)라는 Python 패키지 관리자를 사용하여 설정해야합니다.
