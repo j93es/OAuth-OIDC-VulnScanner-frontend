@@ -161,7 +161,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             await clean_resources(agent, context, browser)
 
             # 1분 대기
-            await asyncio.sleep(5)
+            await asyncio.sleep(60)
             # 반복문을 통해 재시도
             continue
 
