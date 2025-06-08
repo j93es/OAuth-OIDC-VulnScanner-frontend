@@ -13,3 +13,5 @@ oauth_providers.csv
 
 .env
 log_*.log
+
+domains.txt
