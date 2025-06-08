@@ -80,4 +80,7 @@ $RECYCLE.BIN/
 
 my.sh
 
+log.txt
+data/
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows

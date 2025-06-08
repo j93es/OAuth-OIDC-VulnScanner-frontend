@@ -14,6 +14,7 @@ from lib.browser_config import browser_config_kwargs
 from lib.is_html import is_html_url
 from lib.read_txt import read_lines_between
 from lib.prompt import extend_planner_system_message
+from lib.logger import logger
 
 load_dotenv()
 
@@ -33,6 +34,22 @@ class OAuth(BaseModel):
 
 class OAuthList(BaseModel):
     oauth_providers: List[OAuth]
+    
+async def clean_resources(agent, context, browser):
+    """리소스를 정리하는 함수"""
+    try:
+        await agent.close()
+    except Exception as e:
+        print(f"⚠️ 에이전트 리소스 정리 실패: {e}")
+    try:
+        await context.close()
+    except Exception as e:
+        print(f"⚠️ 컨텍스트 리소스 정리 실패: {e}")
+    try:
+        await browser.close()
+    except Exception as e:
+        print(f"⚠️ 브라우저 리소스 정리 실패: {e}")
+    
 
 # ── URL별로 Browser를 새로 띄우는 함수 ──
 async def scan_one_url(url: str, skip_html_check: bool = False):
@@ -58,45 +75,45 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
     except Exception as e:
         print(f"⚠️ Failed to notify backend: {e}")
         
-    # 2) Browser + Context 생성
-    browser = Browser(config=BrowserConfig(**browser_config_kwargs()))
-    context = BrowserContext(
-        browser=browser,
-        config=BrowserContextConfig(
-            wait_for_network_idle_page_load_time=3.0,
-            window_width=1600,
-            window_height=900,
-            locale='en-US',
-            highlight_elements=True,
-            viewport_expansion=500,
-            keep_alive=False
-        )
-    )
-
-    # 3) Agent, Controller 생성
-    initial_actions = [
-        {'open_tab': {'url': target_url, 'wait_for_network_idle': True}},
-    ]
-
-    controller = Controller(output_model=OAuthList)
-    agent = Agent(
-        browser_context=context,
-        browser=browser,
-        initial_actions=initial_actions,
-        task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
-        llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_MODEL")),
-        planner_llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_PLANNER_MODEL")),
-        controller=controller,
-        extend_planner_system_message=extend_planner_system_message,
-        retry_delay=60,
-    )
-    
     try_cnt = 0
     while True:
+        # 2) Browser + Context 생성
+        browser = Browser(config=BrowserConfig(**browser_config_kwargs()))
+        context = BrowserContext(
+            browser=browser,
+            config=BrowserContextConfig(
+                wait_for_network_idle_page_load_time=3.0,
+                window_width=1600,
+                window_height=900,
+                locale='en-US',
+                highlight_elements=True,
+                viewport_expansion=500,
+                keep_alive=False
+            )
+        )
+
+        # 3) Agent, Controller 생성
+        initial_actions = [
+            {'open_tab': {'url': target_url}},
+        ]
+
+        controller = Controller(output_model=OAuthList)
+        agent = Agent(
+            browser_context=context,
+            browser=browser,
+            initial_actions=initial_actions,
+            task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
+            llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_MODEL")),
+            planner_llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_PLANNER_MODEL")),
+            controller=controller,
+            extend_planner_system_message=extend_planner_system_message,
+            retry_delay=60,
+        )
+
         try:
             # 4) 실제 스캔 실행
             response = await agent.run()
-            final_result = response.final_reult()
+            final_result = response.final_result()
             if final_result is None:
                 raise ValueError("final_result()가 None을 반환했습니다.")
 
@@ -128,34 +145,25 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                     writer.writerow([url, entry.provider, entry.oauth_uri])
             print(f"✅ OAuth providers saved to {csv_file}\n")
             
+            await clean_resources(agent, context, browser)
+            
             # 성공적으로 처리했으므로 반복문 탈출
             break
         
         except Exception as e:
             if try_cnt >= 3:
                 print(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
+                logger(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
                 break
             try_cnt += 1
-            print(f"⚠️ 에러 발생, 60초 대기 후 재시도합니다. (URL: {url})")
+            print(f"⚠️ 에러 발생: {e}. {try_cnt}번째 재시도 중...")
+            
+            await clean_resources(agent, context, browser)
 
             # 1분 대기
-            await asyncio.sleep(60)
+            await asyncio.sleep(5)
             # 반복문을 통해 재시도
             continue
-        
-    # 리소스 정리
-    try:
-        await agent.close()
-    except:
-        pass
-    try:
-        await context.close()
-    except:
-        pass
-    try:
-        await browser.close()
-    except:
-        pass
 
 async def loop(filepath: str, start_line: int, end_line: int, skip_html_check: bool = False):
     # 인자값으로 받은 파일 경로와 줄 범위를 통해 도메인 리스트 생성
