@@ -3,9 +3,6 @@
 - [ ] 일부 웹사이트는 사용자의 언어에 따라 OAuth 옵션을 바꾸기도 합니다.
 - [ ] https://docs.browser-use.com/customize/custom-functions
 
-https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt
-이거 도메인 리스트 HTML만 필터링 해둔거니까 이거 쓰면 좋을 것 같습니다.
-
 # 환경 설정
 
 이 프로젝트는 [uv](https://docs.astral.sh/uv/getting-started/installation/)라는 Python 패키지 관리자를 사용하여 설정해야합니다.
@@ -38,6 +35,9 @@ Environment는 .env.example에 따라 설정되어야합니다.
 # 실행
 
 ```sh
+# domains.txt 받기
+curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o domains.txt
+
 # ./run.sh {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
 ./run.sh 12540 13000 False
 ```
