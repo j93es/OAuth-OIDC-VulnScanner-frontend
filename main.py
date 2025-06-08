@@ -100,6 +100,13 @@ extend_planner_system_message = """
      ```json
      []
      ```
+
+5. **중요 사항**
+    - **반드시** 위의 단계들을 순서대로 수행해야 하며, 각 단계에서 발생하는 예외 상황을 정확히 처리해야 합니다.
+    - **반복 행동**이 감지되면 즉시 빈 배열을 반환하고, **블록된 페이지**는 초기 단계에서 처리하여 프로세스를 종료해야 합니다.
+    - **SSO 버튼이 발견되지 않거나, 오류가 발생한 경우에도 빈 배열을 반환해야 합니다.**
+    - **반드시** JSON 형식으로 결과를 반환해야 하며, 다른 형식은 허용되지 않습니다.
+    - 최대한 효율적인 단계로 진행하며, 불필요한 반복이나 검색 엔진 사용을 피해야 합니다.
 """
 
 # ── URL별로 Browser를 새로 띄우는 함수 ──
@@ -142,19 +149,25 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
     )
 
     # 3) Agent, Controller 생성
+
+    initial_actions = [
+        {'open_tab': {'url': url}}
+    ]
+
     controller = make_controller()
     agent = Agent(
         browser_context=context,
         browser=browser,
-        task=f"Go to {url}, navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
+        initial_actions=initial_actions,
+        task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
         llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_MODEL")),
         planner_llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_PLANNER_MODEL")),
         controller=controller,
         extend_planner_system_message=extend_planner_system_message,
+        retry_delay=60,
     )
     
     try:
-
         # 4) 실제 스캔 실행
         response = await agent.run()
         final_result = response.final_result()
