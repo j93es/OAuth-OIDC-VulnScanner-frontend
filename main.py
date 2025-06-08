@@ -133,86 +133,105 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
     except Exception as e:
         print(f"⚠️ Failed to notify backend: {e}")
     
-    # 2) Browser + Context 생성
-    browser = Browser(config=BrowserConfig(**browser_config_kwargs()))
-    context = BrowserContext(
-        browser=browser,
-        config=BrowserContextConfig(
-            wait_for_network_idle_page_load_time=3.0,
-            window_width=1600,
-            window_height=900,
-            locale='en-US',
-            highlight_elements=True,
-            viewport_expansion=500,
-            keep_alive=False
+    while True:
+        # 2) Browser + Context 생성
+        browser = Browser(config=BrowserConfig(**browser_config_kwargs()))
+        context = BrowserContext(
+            browser=browser,
+            config=BrowserContextConfig(
+                wait_for_network_idle_page_load_time=3.0,
+                window_width=1600,
+                window_height=900,
+                locale='en-US',
+                highlight_elements=True,
+                viewport_expansion=500,
+                keep_alive=False
+            )
         )
-    )
 
-    # 3) Agent, Controller 생성
+        # 3) Agent, Controller 생성
 
-    initial_actions = [
-        {'open_tab': {'url': url}}
-    ]
+        initial_actions = [
+            {'open_tab': {'url': url}}
+        ]
 
-    controller = make_controller()
-    agent = Agent(
-        browser_context=context,
-        browser=browser,
-        initial_actions=initial_actions,
-        task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
-        llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_MODEL")),
-        planner_llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_PLANNER_MODEL")),
-        controller=controller,
-        extend_planner_system_message=extend_planner_system_message,
-        retry_delay=60,
-    )
-    
-    try:
-        # 4) 실제 스캔 실행
-        response = await agent.run()
-        final_result = response.final_result()
-        if final_result is None:
-            raise ValueError("final_result()가 None을 반환했습니다.")
+        controller = make_controller()
+        agent = Agent(
+            browser_context=context,
+            browser=browser,
+            initial_actions=initial_actions,
+            task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
+            llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_MODEL")),
+            planner_llm=ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_PLANNER_MODEL")),
+            controller=controller,
+            extend_planner_system_message=extend_planner_system_message,
+            retry_delay=60,
+        )
 
-        data = json.loads(final_result)
         try:
-            oauth_entries: List[OAuth] = [OAuth(**entry) for entry in data["oauth_providers"]]
-        except Exception as e:
-            raise ValueError(f"결과 파싱 실패: {e}\n원본 결과: {final_result}")
+            # 4) 실제 스캔 실행
+            response = await agent.run()
+            final_result = response.final_result()
+            if final_result is None:
+                raise ValueError("final_result()가 None을 반환했습니다.")
 
-        # 5) 결과 출력
-        print("-" * 50)
-        print(f"🔗 Scanned URL: {url}\n")
-        print("🔐 Detected OAuth Providers and URLs:")
-        for entry in oauth_entries:
-            if "<" in entry.oauth_uri or "..." in entry.oauth_uri:
-                print(f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n")
-            else:
-                print(f"- {entry.provider}: {entry.oauth_uri}")
-        print("-" * 50)
+            data = json.loads(final_result)
+            try:
+                oauth_entries: List[OAuth] = [OAuth(**entry) for entry in data["oauth_providers"]]
+            except Exception as e:
+                raise ValueError(f"결과 파싱 실패: {e}\n원본 결과: {final_result}")
 
-        # 6) CSV에 저장 (append)
-        csv_file = "./oauth_providers.csv"
-        file_exists = os.path.isfile(csv_file)
-        with open(csv_file, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            if not file_exists:
-                writer.writerow(["issuer", "provider", "oauth_uri"])
+            # 5) 결과 출력
+            print("-" * 50)
+            print(f"🔗 Scanned URL: {url}\n")
+            print("🔐 Detected OAuth Providers and URLs:")
             for entry in oauth_entries:
-                writer.writerow([url, entry.provider, entry.oauth_uri])
-        print(f"✅ OAuth providers saved to {csv_file}\n")
+                if "<" in entry.oauth_uri or "..." in entry.oauth_uri:
+                    print(f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n")
+                else:
+                    print(f"- {entry.provider}: {entry.oauth_uri}")
+            print("-" * 50)
 
-        # 7) Agent와 Browser 닫기
-        await agent.close()           # Agent 내부 작업 정리
-        await context.close()         # 브라우저 컨텍스트 종료 (탭/세션 닫기)
-        await browser.close()         # 실제 브라우저 프로세스 종료
+            # 6) CSV에 저장 (append)
+            csv_file = "./oauth_providers.csv"
+            file_exists = os.path.isfile(csv_file)
+            with open(csv_file, "a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                if not file_exists:
+                    writer.writerow(["issuer", "provider", "oauth_uri"])
+                for entry in oauth_entries:
+                    writer.writerow([url, entry.provider, entry.oauth_uri])
+            print(f"✅ OAuth providers saved to {csv_file}\n")
+
+            # 7) Agent와 Browser 닫기
+            await agent.close()           # Agent 내부 작업 정리
+            await context.close()         # 브라우저 컨텍스트 종료 (탭/세션 닫기)
+            await browser.close()         # 실제 브라우저 프로세스 종료
+            
+            # 성공적으로 처리했으므로 반복문 탈출
+            break
         
-    except Exception as e:
-        print(f"❌ Error scanning {url}: {e}")
-        # 에러 발생 시에도 Agent와 Browser는 닫아야 합니다.
-        await agent.close()
-        await context.close()
-        await browser.close()
+        except Exception as e:
+            print(f"⚠️ 429 에러 발생, 60초 대기 후 재시도합니다. (URL: {url})")
+
+            # 리소스 정리
+            try:
+                await agent.close()
+            except:
+                pass
+            try:
+                await context.close()
+            except:
+                pass
+            try:
+                await browser.close()
+            except:
+                pass
+
+            # 1분 대기
+            await asyncio.sleep(60)
+            # 반복문을 통해 재시도
+            continue
 
 async def loop(filepath: str, start_line: int, end_line: int, skip_html_check: bool = False):
     # 인자값으로 받은 파일 경로와 줄 범위를 통해 도메인 리스트 생성
