@@ -151,17 +151,18 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             break
         
         except Exception as e:
-            if try_cnt >= 3:
+            await clean_resources(agent, context, browser)
+            
+            if try_cnt >= 1:
                 print(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
                 logger(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
-                break
+                return
             try_cnt += 1
             print(f"⚠️ 에러 발생: {e}. {try_cnt}번째 재시도 중...")
             
-            await clean_resources(agent, context, browser)
 
             # 1분 대기
-            await asyncio.sleep(60)
+            await asyncio.sleep(5)
             # 반복문을 통해 재시도
             continue
 
