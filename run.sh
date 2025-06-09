@@ -34,6 +34,7 @@ while [ "$current" -le "$END_LINE" ]; do
   uv run "$PYTHON_SCRIPT" -f "$DOMAIN_FILE" -s "$current" -e "$chunk_end" -skh $SKH_OPTION
 
   current=$(( chunk_end + 1 ))
+  sleep 1  # 1초 대기
 done
 
 echo "모든 청크 처리 완료."
