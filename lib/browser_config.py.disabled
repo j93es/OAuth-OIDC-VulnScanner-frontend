@@ -12,10 +12,15 @@ def browser_config_kwargs(lang: str = "en_US") -> dict[str, Any]:
         "disable_security": True,
         "extra_browser_args": [
             "--disable-web-security",
+            "--disable-features=VizDisplayCompositor",
+            "--disable-site-isolation-trials",
             "--disable-features=IsolateOrigins,site-per-process",
             "--disable-popup-blocking",
+            "--disable-dev-shm-usage",
             f"--lang={lang}",
-            "--ignore-certificate-errors"
+            "--ignore-certificate-errors",
+            "--ignore-ssl-errors",
+            "--allow-running-insecure-content"
         ],
     }
 
@@ -27,3 +32,4 @@ def browser_config_kwargs(lang: str = "en_US") -> dict[str, Any]:
         )
 
     return browser_config_kwargs
+    

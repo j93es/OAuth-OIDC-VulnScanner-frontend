@@ -44,16 +44,16 @@ backend_url = os.getenv("BACKEND_URL", "http://localhost:11081")
 class QuotaExhaustedHandler(BaseCallbackHandler):
     def on_llm_error(self, error, **kwargs):
         if "ResourceExhausted" in str(error) or "429" in str(error):
-            print("⚠️ API 쿼터가 소진되었습니다. 120초 대기 후 재시도합니다...")
-            time.sleep(120)
+            print("⚠️ API 쿼터가 소진되었습니다. 60초 대기 후 재시도합니다...")
+            time.sleep(60)
 
 
 def create_llm_with_retry():
     """재시도 로직이 포함된 LLM 생성"""
     return ChatGoogleGenerativeAI(
         model=os.getenv("GOOGLE_MODEL"),
-        max_retries=10,  # 최대 재시도 횟수 증가
-        request_timeout=180,  # 타임아웃 시간 증가 (3분)
+        max_retries=5,  # 최대 재시도 횟수 증가
+        request_timeout=120,  # 타임아웃 시간 증가
         callbacks=[QuotaExhaustedHandler()],
         # API 호출 간격 조정
         temperature=0.1,
@@ -64,8 +64,8 @@ def create_planner_llm_with_retry():
     """플래너용 재시도 로직이 포함된 LLM 생성"""
     return ChatGoogleGenerativeAI(
         model=os.getenv("GOOGLE_PLANNER_MODEL"),
-        max_retries=10,  # 최대 재시도 횟수 증가
-        request_timeout=180,  # 타임아웃 시간 증가 (3분)
+        max_retries=5,  # 최대 재시도 횟수 증가
+        request_timeout=120,  # 타임아웃 시간 증가
         callbacks=[QuotaExhaustedHandler()],
         # API 호출 간격 조정
         temperature=0.1,
@@ -140,6 +140,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             print(f"🔗 Using proxy: {proxy_host}:{proxy_port}")
         else:
             print("🔗 No proxy configured, using direct connection.")
+            break
 
         # 2) Browser + Context 생성
         playwright = await async_playwright().start()
@@ -161,6 +162,8 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             ],
         )
 
+
+
         os.makedirs("./data", exist_ok=True)
 
         profile = BrowserProfile(
@@ -180,38 +183,28 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         # 3) Agent, Controller 생성
         initial_actions = [
             {"open_tab": {"url": target_url}},
-        ]
-
-        controller = Controller(output_model=OAuthList)
+        ]        controller = Controller(output_model=OAuthList)
         
         # API 쿼터 문제 해결을 위한 LLM 생성
         print("🤖 LLM 모델 초기화 중...")
         
-        try:
-            agent = Agent(
-                browser_session=session,
-                browser_profile=profile,
-                browser_context=context,
-                initial_actions=initial_actions,
-                task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
-                llm=create_llm_with_retry(),
-                planner_llm=create_planner_llm_with_retry(),
-                controller=controller,
-                extend_planner_system_message=extend_planner_system_message,
-                retry_delay=180,  # 재시도 간격을 3분으로 증가
-            )
-        except Exception as e:
-            print(f"⚠️ Agent 생성 실패: {e}")
-            # API 쿼터 문제일 경우 더 긴 대기
-            if "ResourceExhausted" in str(e) or "429" in str(e):
-                print("⚠️ API 쿼터 문제로 인한 Agent 생성 실패. 5분 대기 후 재시도...")
-                await asyncio.sleep(300)
-            await clean_resources(None, session, browser, playwright)
-            continue
+        agent = Agent(
+            browser_session=session,
+            browser_profile=profile,
+            browser_context=context,
+
+            initial_actions=initial_actions,
+            task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
+            
+            llm=create_llm_with_retry(),
+            planner_llm=create_planner_llm_with_retry(),
+            controller=controller,
+            extend_planner_system_message=extend_planner_system_message,
+            retry_delay=120,  # 재시도 간격을 2분으로 증가
+        )
 
         try:
             # 4) 실제 스캔 실행
-            print("🔍 스캔 시작...")
             response = await agent.run()
             final_result = response.final_result()
             if final_result is None:
@@ -245,11 +238,6 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 writer = csv.writer(f)
                 if not file_exists:
                     writer.writerow(["issuer", "provider", "oauth_uri"])
-                
-                # 실제 데이터 저장
-                for entry in oauth_entries:
-                    writer.writerow([url, entry.provider, entry.oauth_uri])
-            
             await clean_resources(agent, session, browser, playwright)
 
             # 성공적으로 처리했으므로 반복문 탈출
@@ -258,28 +246,15 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         except Exception as e:
             await clean_resources(agent, session, browser, playwright)
 
-            # API 쿼터 문제인지 확인
-            if "ResourceExhausted" in str(e) or "429" in str(e):
-                print(f"⚠️ API 쿼터 소진 에러: {e}")
-                print("⚠️ 5분 대기 후 재시도합니다...")
-                await asyncio.sleep(300)  # 5분 대기
-                try_cnt += 1
-                if try_cnt >= 3:
-                    print(f"❌ {url} 스캔에 실패했습니다. API 쿼터 문제가 지속됩니다.")
-                    logger(f"❌ {url} 스캔에 실패했습니다. API 쿼터 문제: {e}")
-                    return
-                continue
-
-            if try_cnt >= 2:
+            if try_cnt >= 1:
                 print(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
                 logger(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
                 return
-            
             try_cnt += 1
             print(f"⚠️ 에러 발생: {e}. {try_cnt}번째 재시도 중...")
 
-            # 일반 에러의 경우 짧게 대기
-            await asyncio.sleep(30)
+            # 1분 대기
+            await asyncio.sleep(5)
             # 반복문을 통해 재시도
             continue
 
@@ -295,14 +270,10 @@ async def loop(
     # (필요하다면) 강제 설정이 필요한 경우, 아래 주석을 해제하여 target_list[0] 등을 덮어쓸 수 있습니다.
     #target_list[0] = "velog.io"
 
-    for i, url in enumerate(target_list):
-        print(f"\n🔄 Processing {i+1}/{len(target_list)}: {url}")
-        
-        # URL들 사이에 API 쿼터 회복을 위한 대기 시간 추가
-        if i > 0:
-            print("⏳ API 쿼터 보호를 위해 30초 대기 중...")
-            await asyncio.sleep(30)
-            
+    for url in target_list:
+        # scan_one_url은 외부에 정의된 비동기 함수라고 가정합니다.
+        # 실제로 scan_one_url이 정의된 위치를 import하거나
+        # 모듈 수준에 구현해두셔야 합니다.
         await scan_one_url(url, skip_html_check=skip_html_check)
 
 
