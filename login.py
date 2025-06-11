@@ -11,7 +11,7 @@ def launch_browser_with_profile():
 
 if __name__ == "__main__":
     browser, page, playwright = launch_browser_with_profile()
-    page.goto("https://example.com")
+    page.goto("https://google.com")
     print("Browser launched with user data profile.")
     
     # 브라우저가 열린 상태를 유지

@@ -3,6 +3,7 @@ import json
 import os
 import csv
 import argparse
+from pathlib import Path
 import requests
 import time
 from typing import List
@@ -12,17 +13,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.callbacks.base import BaseCallbackHandler
 from browser_use import (
     Agent,
-    Browser,
-    BrowserConfig,
     BrowserSession,
     BrowserProfile,
     Controller,
 )
-from browser_use.browser.context import BrowserContext, BrowserContextConfig
-from playwright.async_api import async_playwright
-
-# from lib import browser_config
-# from lib.browser_config import browser_config_kwargs
 from lib.is_html import is_html_url
 from lib.read_txt import read_lines_between
 from lib.prompt import extend_planner_system_message
@@ -48,24 +42,18 @@ class QuotaExhaustedHandler(BaseCallbackHandler):
             time.sleep(120)
 
 
-def create_llm_with_retry():
+def CreateChatGoogleGenerativeAI(model: str):
     """재시도 로직이 포함된 LLM 생성"""
+    if model == "fallback":
+        print("⚠️ Fallback 모델을 사용합니다. Envorinment 변수를 확인하세요.")
+        print("⚠️ Model Gemini-2.0-flash-lite를 사용합니다.")
+        model = "gemini-2.0-flash-lite"
     return ChatGoogleGenerativeAI(
-        model=os.getenv("GOOGLE_MODEL"),
+        model=model,
         max_retries=10,  # 최대 재시도 횟수 증가
-        request_timeout=180,  # 타임아웃 시간 증가 (3분)
-        callbacks=[QuotaExhaustedHandler()],
-        # API 호출 간격 조정
-        temperature=0.1,
-    )
-
-
-def create_planner_llm_with_retry():
-    """플래너용 재시도 로직이 포함된 LLM 생성"""
-    return ChatGoogleGenerativeAI(
-        model=os.getenv("GOOGLE_PLANNER_MODEL"),
-        max_retries=10,  # 최대 재시도 횟수 증가
-        request_timeout=180,  # 타임아웃 시간 증가 (3분)
+        model_kwargs={
+            "request_timeout": 120,  # 타임아웃 시간 증가 (2분)
+        },
         callbacks=[QuotaExhaustedHandler()],
         # API 호출 간격 조정
         temperature=0.1,
@@ -82,24 +70,18 @@ class OAuthList(BaseModel):
     oauth_providers: List[OAuth]
 
 
-async def clean_resources(agent, session, browser, playwright):
+async def clean_resources(agent=None, session=None):
     """리소스를 정리하는 함수"""
-    try:
-        await agent.close()
-    except Exception as e:
-        print(f"⚠️ 에이전트 리소스 정리 실패: {e}")
-    try:
-        await session.close()
-    except Exception as e:
-        print(f"⚠️ 세션 리소스 정리 실패: {e}")
-    try:
-        await browser.close()
-    except Exception as e:
-        print(f"⚠️ 브라우저 리소스 정리 실패: {e}")
-    try:
-        await playwright.stop()
-    except Exception as e:
-        print(f"⚠️ Playwright 리소스 정리 실패: {e}")
+    if agent:
+        try:
+            await agent.close()
+        except Exception as e:
+            print(f"⚠️ 에이전트 리소스 정리 실패: {e}")
+    if session:
+        try:
+            await session.close()
+        except Exception as e:
+            print(f"⚠️ 세션 리소스 정리 실패: {e}")
 
 
 # ── URL별로 Browser를 새로 띄우는 함수 ──
@@ -141,11 +123,20 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         else:
             print("🔗 No proxy configured, using direct connection.")
 
-        # 2) Browser + Context 생성
-        playwright = await async_playwright().start()
-        browser = await playwright.chromium.launch(
+        # user_data_dir 설정
+        user_data_path = Path("./data/user_data").resolve()
+        user_data_path.mkdir(parents=True, exist_ok=True)
+
+        # BrowserProfile에 모든 설정 포함
+        profile = BrowserProfile(
+            disable_security=True,
+            stealth=True,
+            headless=False,
+            user_data_dir=str(user_data_path),
+            viewport={"width": 1600, "height": 900},
+            # 프록시 설정
             proxy={"server": proxy_url} if proxy_url else None,
-            headless=False,  # headless 모드 사용 여부
+            # 추가 args
             args=[
                 "--disable-web-security",
                 "--disable-features=VizDisplayCompositor",
@@ -153,52 +144,42 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 "--disable-features=IsolateOrigins,site-per-process",
                 "--disable-popup-blocking",
                 "--disable-dev-shm-usage",
-                f"--lang=" + os.getenv("LANG", "en_US"),
+                f"--lang={os.getenv('LANG', 'en_US')}",
                 "--ignore-certificate-errors",
                 "--ignore-ssl-errors",
                 "--allow-running-insecure-content",
-                "--restore-last-session"
+                "--restore-last-session",
             ],
         )
 
-        os.makedirs("./data", exist_ok=True)
-
-        profile = BrowserProfile(
-            stealth=True,
-            headless=False,  # headless 모드 사용 여부
-            user_data_dir="./data/user_data",
-            viewport={"width": 1600, "height": 900},
-        )
-        
-        # BrowserSession 생성 시 headless 옵션을 명시적으로 설정
-        context = await browser.new_context()
-
+        # BrowserSession에 profile 전달
         session = BrowserSession(
-            browser_context=await browser.new_context(),
+            browser_profile=profile,
         )
 
-        # 3) Agent, Controller 생성
+        # Agent 생성
         initial_actions = [
             {"open_tab": {"url": target_url}},
         ]
 
         controller = Controller(output_model=OAuthList)
-        
+
         # API 쿼터 문제 해결을 위한 LLM 생성
         print("🤖 LLM 모델 초기화 중...")
-        
+
         try:
             agent = Agent(
                 browser_session=session,
-                browser_profile=profile,
-                browser_context=context,
                 initial_actions=initial_actions,
                 task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
-                llm=create_llm_with_retry(),
-                planner_llm=create_planner_llm_with_retry(),
+                llm=CreateChatGoogleGenerativeAI(
+                    os.getenv("GOOGLE_MODEL") or "fallback"
+                ),
+                planner_llm=CreateChatGoogleGenerativeAI(
+                    os.getenv("GOOGLE_PLANNER_MODEL") or "fallback"
+                ),
                 controller=controller,
                 extend_planner_system_message=extend_planner_system_message,
-                retry_delay=180,  # 재시도 간격을 3분으로 증가
             )
         except Exception as e:
             print(f"⚠️ Agent 생성 실패: {e}")
@@ -206,7 +187,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             if "ResourceExhausted" in str(e) or "429" in str(e):
                 print("⚠️ API 쿼터 문제로 인한 Agent 생성 실패. 5분 대기 후 재시도...")
                 await asyncio.sleep(300)
-            await clean_resources(None, session, browser, playwright)
+            await clean_resources(agent=None, session=session)
             continue
 
         try:
@@ -245,18 +226,17 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 writer = csv.writer(f)
                 if not file_exists:
                     writer.writerow(["issuer", "provider", "oauth_uri"])
-                
+
                 # 실제 데이터 저장
                 for entry in oauth_entries:
                     writer.writerow([url, entry.provider, entry.oauth_uri])
-            
-            await clean_resources(agent, session, browser, playwright)
+            await clean_resources(agent, session)
 
             # 성공적으로 처리했으므로 반복문 탈출
             break
 
         except Exception as e:
-            await clean_resources(agent, session, browser, playwright)
+            await clean_resources(agent, session)
 
             # API 쿼터 문제인지 확인
             if "ResourceExhausted" in str(e) or "429" in str(e):
@@ -274,7 +254,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 print(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
                 logger(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
                 return
-            
+
             try_cnt += 1
             print(f"⚠️ 에러 발생: {e}. {try_cnt}번째 재시도 중...")
 
@@ -293,16 +273,16 @@ async def loop(
     )
 
     # (필요하다면) 강제 설정이 필요한 경우, 아래 주석을 해제하여 target_list[0] 등을 덮어쓸 수 있습니다.
-    #target_list[0] = "velog.io"
+    # target_list[0] = "velog.io"
 
     for i, url in enumerate(target_list):
         print(f"\n🔄 Processing {i+1}/{len(target_list)}: {url}")
-        
+
         # URL들 사이에 API 쿼터 회복을 위한 대기 시간 추가
         if i > 0:
             print("⏳ API 쿼터 보호를 위해 30초 대기 중...")
             await asyncio.sleep(30)
-            
+
         await scan_one_url(url, skip_html_check=skip_html_check)
 
 
