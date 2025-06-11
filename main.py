@@ -82,6 +82,17 @@ class OAuthList(BaseModel):
 
 async def clean_resources(agent=None, session=None):
     """리소스를 정리하는 함수"""
+    storage_state_temp_path = Path("./data/storage_state_temp.json").resolve()
+    if storage_state_temp_path.exists():
+        try:
+            # remove file
+            print(f"🗑️ 임시 스토리지 상태 파일 삭제 중: {storage_state_temp_path}")
+            # unlink removes the file
+            storage_state_temp_path.unlink()
+            print("🗑️ 임시 스토리지 상태 파일 삭제 완료.")
+        except Exception as e:
+            print(f"⚠️ 임시 스토리지 상태 파일 삭제 실패: {e}")
+
     if agent:
         try:
             await agent.close()
@@ -136,10 +147,19 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             print("🔗 No proxy configured, using direct connection.")
 
         # user_data_dir 설정
-        user_data_path = Path("./data/user_data").resolve()
-        user_data_path.mkdir(parents=True, exist_ok=True)
+        #user_data_path = Path("./data/user_data").resolve()
+        #user_data_path.mkdir(parents=True, exist_ok=True)
 
         storage_state_path = Path("./data/storage_state.json").resolve()
+        storage_state_temp_path = Path("./data/storage_state_temp.json").resolve()
+        # copy storage_state.json to storage_state_temp.json
+        if storage_state_path.exists():
+            if storage_state_temp_path.exists():
+                storage_state_temp_path.unlink()
+            storage_state_temp_path.write_text(storage_state_path.read_text(), encoding="utf-8")
+            print(f"🔄 Using existing storage state: {storage_state_temp_path}")
+        else:
+            storage_state_temp_path = None
 
         # BrowserProfile에 모든 설정 포함
         profile = BrowserProfile(
@@ -148,7 +168,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             headless=False,
             #user_data_dir=str(user_data_path),
             user_data_dir=None,
-            storage_state=str(storage_state_path) if storage_state_path.exists() else None,
+            storage_state=str(storage_state_temp_path) if storage_state_temp_path and storage_state_temp_path.exists() else None,
             viewport={"width": 1600, "height": 900},
             # 프록시 설정
             proxy={"server": proxy_url} if proxy_url else None,
