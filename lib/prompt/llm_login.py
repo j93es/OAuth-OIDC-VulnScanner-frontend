@@ -1,5 +1,21 @@
+from dotenv import load_dotenv
+import os
+
+load_dotenv(override=True)
+google_id = os.getenv("GOOGLE_ID", "")
+google_password = os.getenv("GOOGLE_PASSWORD", "")
+
+naver_id = os.getenv("NAVER_ID", "")
+naver_password = os.getenv("NAVER_PASSWORD", "")
+
+facebook_id = os.getenv("FACEBOOK_ID", "")
+facebook_password = os.getenv("FACEBOOK_PASSWORD", "")
+
+github_id = os.getenv("GITHUB_ID", "")
+github_password = os.getenv("GITHUB_PASSWORD", "")
+
 # Extended planner prompt
-extend_planner_system_message = """
+extend_planner_system_message = f"""
 🎯 Mission: Collect Initial SSO Redirect URLs (For Browser Automation)
 
 ※ **모든 STEP에서 구글 검색, Bing 검색 등 어떤 외부 검색 기능도 절대 사용하지 않고, 초기에 주어진 URL에서 탐색하세요.**
@@ -40,8 +56,7 @@ extend_planner_system_message = """
      - Naver → `{naver_id}` / `{naver_password}`
      - GitHub → `{github_id}` / `{github_password}`
      - 자격증명이 주어진 SSO 버튼인 경우 로그인 과정을 꼭 진행합니다.
-     - 로그인 과정이 모두 끝난 경우 세션 및 쿠키를 모두 삭제하고 페이지를 새로고침합니다.
-     - 로그인 시도를 우선으로 해주세요. 하지만 계정 정보를 가지고 있지 않거나 로그인이 되어 있지 않은 경우, 로그인은 건너뛰고 다음 단계로 진행합니다.
+     - 로그인 과정이 모두 끝나거나 로그인이 되지 않는 경우 세션 및 쿠키를 모두 삭제하고 페이지를 새로고침합니다.
      - 아직 로그인을 시도하지 않은 SSO 버튼이 있다면 이전 단계인 1. **로그인 페이지 탐색**, 2. **SSO 버튼 식별**, 3. **SSO 버튼 클릭 및 로그인 시도** 로 돌아가 절차를 반복합니다.
      - 최종 결과는 다음과 같이 기록합니다:
     ```json

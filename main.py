@@ -204,7 +204,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_MODEL") or "fallback"),
                 planner_llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_PLANNER_MODEL") or "fallback"),
                 controller=controller,
-                extend_planner_system_message=extend_planner_system_message,
+                extend_planner_system_message=extend_planner_system_message(),
             )
             response = await agent.run()
             final_result = response.final_result()
