@@ -22,7 +22,11 @@ from lib.read_txt import read_lines_between
 from lib.prompt import extend_planner_system_message
 from lib.logger import logger
 
-load_dotenv()
+load_dotenv(verbose=True, override=True)
+
+# Exponential backoff settings
+INITIAL_BACKOFF = int(os.getenv("INITIAL_BACKOFF", "60"))  # seconds
+MAX_BACKOFF = int(os.getenv("MAX_BACKOFF", "600"))  # seconds
 
 if os.getenv("GOOGLE_API_KEY") is None:
     raise ValueError("GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
@@ -33,13 +37,19 @@ if os.getenv("GOOGLE_PLANNER_MODEL") is None:
 
 backend_url = os.getenv("BACKEND_URL", "http://localhost:11081")
 
+print("🔧 환경 설정:")
+print(f"🔗 Backend URL: {backend_url}")
+api_key = os.getenv('GOOGLE_API_KEY')
+print(f"🔑 Google API Key: {api_key[-4:] if api_key else None}")
+print(f"🌐 Google Model: {os.getenv('GOOGLE_MODEL')}")
+print(f"🌐 Google Planner Model: {os.getenv('GOOGLE_PLANNER_MODEL')}")
 
 # API 쿼터 처리를 위한 콜백 핸들러
 class QuotaExhaustedHandler(BaseCallbackHandler):
     def on_llm_error(self, error, **kwargs):
         if "ResourceExhausted" in str(error) or "429" in str(error):
-            print("⚠️ API 쿼터가 소진되었습니다. 120초 대기 후 재시도합니다...")
-            time.sleep(120)
+            print("⚠️ API 쿼터가 소진되었습니다. 재시도 로직에 위임합니다...")
+            # backoff handled in scan_one_url
 
 
 def CreateChatGoogleGenerativeAI(model: str):
@@ -112,6 +122,8 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
     except Exception as e:
         print(f"⚠️ Failed to notify backend: {e}")
 
+    agent = None
+    session = None
     try_cnt = 0
     while True:
         proxy_host = os.getenv("PROXY_HOST")
@@ -127,12 +139,16 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         user_data_path = Path("./data/user_data").resolve()
         user_data_path.mkdir(parents=True, exist_ok=True)
 
+        storage_state_path = Path("./data/storage_state.json").resolve()
+
         # BrowserProfile에 모든 설정 포함
         profile = BrowserProfile(
             disable_security=True,
             stealth=True,
             headless=False,
-            user_data_dir=str(user_data_path),
+            #user_data_dir=str(user_data_path),
+            user_data_dir=None,
+            storage_state=str(storage_state_path) if storage_state_path.exists() else None,
             viewport={"width": 1600, "height": 900},
             # 프록시 설정
             proxy={"server": proxy_url} if proxy_url else None,
@@ -156,111 +172,75 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             browser_profile=profile,
         )
 
-        # Agent 생성
-        initial_actions = [
-            {"open_tab": {"url": target_url}},
-        ]
-
+        # Agent 생성 및 실행 (단일 try-except with 백오프)
+        initial_actions = [{"open_tab": {"url": target_url}}]
         controller = Controller(output_model=OAuthList)
-
-        # API 쿼터 문제 해결을 위한 LLM 생성
-        print("🤖 LLM 모델 초기화 중...")
-
+        print("🤖 LLM 모델 초기화 및 스캔 시작...")
         try:
             agent = Agent(
                 browser_session=session,
                 initial_actions=initial_actions,
-                task=f"Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
-                llm=CreateChatGoogleGenerativeAI(
-                    os.getenv("GOOGLE_MODEL") or "fallback"
-                ),
-                planner_llm=CreateChatGoogleGenerativeAI(
-                    os.getenv("GOOGLE_PLANNER_MODEL") or "fallback"
-                ),
+                task="Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
+                llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_MODEL") or "fallback"),
+                planner_llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_PLANNER_MODEL") or "fallback"),
                 controller=controller,
                 extend_planner_system_message=extend_planner_system_message,
             )
-        except Exception as e:
-            print(f"⚠️ Agent 생성 실패: {e}")
-            # API 쿼터 문제일 경우 더 긴 대기
-            if "ResourceExhausted" in str(e) or "429" in str(e):
-                print("⚠️ API 쿼터 문제로 인한 Agent 생성 실패. 5분 대기 후 재시도...")
-                await asyncio.sleep(300)
-            await clean_resources(agent=None, session=session)
-            continue
-
-        try:
-            # 4) 실제 스캔 실행
-            print("🔍 스캔 시작...")
             response = await agent.run()
             final_result = response.final_result()
             if final_result is None:
                 raise ValueError("final_result()가 None을 반환했습니다.")
-
-            data = json.loads(final_result)
-            try:
-                oauth_entries: List[OAuth] = [
-                    OAuth(**entry) for entry in data["oauth_providers"]
-                ]
-            except Exception as e:
-                raise ValueError(f"결과 파싱 실패: {e}\n원본 결과: {final_result}")
-
-            # 5) 결과 출력
-            print("-" * 50)
-            print(f"🔗 Scanned URL: {url}\n")
-            print("🔐 Detected OAuth Providers and URLs:")
-            for entry in oauth_entries:
-                if "<" in entry.oauth_uri or "..." in entry.oauth_uri:
-                    print(
-                        f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n"
-                    )
-                else:
-                    print(f"- {entry.provider}: {entry.oauth_uri}")
-            print("-" * 50)
-
-            # 6) CSV에 저장 (append)
-            csv_file = "./oauth_providers.csv"
-            file_exists = os.path.isfile(csv_file)
-            with open(csv_file, "a", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                if not file_exists:
-                    writer.writerow(["issuer", "provider", "oauth_uri"])
-
-                # 실제 데이터 저장
-                for entry in oauth_entries:
-                    writer.writerow([url, entry.provider, entry.oauth_uri])
-            await clean_resources(agent, session)
-
-            # 성공적으로 처리했으므로 반복문 탈출
-            break
-
         except Exception as e:
             await clean_resources(agent, session)
-
             # API 쿼터 문제인지 확인
             if "ResourceExhausted" in str(e) or "429" in str(e):
-                print(f"⚠️ API 쿼터 소진 에러: {e}")
-                print("⚠️ 5분 대기 후 재시도합니다...")
-                await asyncio.sleep(300)  # 5분 대기
+                wait = min(INITIAL_BACKOFF * (2 ** try_cnt), MAX_BACKOFF)
+                print(f"⚠️ API 쿼터 에러: {e}. {wait}초 대기 후 재시도합니다...")
+                await asyncio.sleep(wait)
                 try_cnt += 1
                 if try_cnt >= 3:
-                    print(f"❌ {url} 스캔에 실패했습니다. API 쿼터 문제가 지속됩니다.")
-                    logger(f"❌ {url} 스캔에 실패했습니다. API 쿼터 문제: {e}")
+                    print(f"❌ {url} 스캔 실패: API 쿼터 문제가 지속됩니다.")
+                    logger(f"❌ {url} 스캔 실패: API 쿼터 문제: {e}")
                     return
                 continue
-
-            if try_cnt >= 2:
-                print(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
-                logger(f"❌ {url} 스캔에 실패했습니다. 에러: {e}")
-                return
-
+            # 일반 에러 처리
             try_cnt += 1
+            if try_cnt >= 3:
+                print(f"❌ {url} 스캔 실패: 에러: {e}")
+                logger(f"❌ {url} 스캔 실패: 에러: {e}")
+                return
             print(f"⚠️ 에러 발생: {e}. {try_cnt}번째 재시도 중...")
-
-            # 일반 에러의 경우 짧게 대기
             await asyncio.sleep(30)
-            # 반복문을 통해 재시도
             continue
+
+        # 스캔 결과 처리
+        data = json.loads(final_result)
+        try:
+            oauth_entries = [OAuth(**entry) for entry in data["oauth_providers"]]
+        except Exception as e:
+            raise ValueError(f"결과 파싱 실패: {e}\n원본 결과: {final_result}")
+
+        print("-" * 50)
+        print(f"🔗 Scanned URL: {url}\n")
+        print("🔐 Detected OAuth Providers and URLs:")
+        for entry in oauth_entries:
+            if "<" in entry.oauth_uri or "..." in entry.oauth_uri:
+                print(f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n")
+            else:
+                print(f"- {entry.provider}: {entry.oauth_uri}")
+        print("-" * 50)
+
+        # CSV에 저장 (append)
+        csv_file = "./oauth_providers.csv"
+        file_exists = os.path.isfile(csv_file)
+        with open(csv_file, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(["issuer", "provider", "oauth_uri"])
+            for entry in oauth_entries:
+                writer.writerow([url, entry.provider, entry.oauth_uri])
+        await clean_resources(agent, session)
+        break
 
 
 async def loop(

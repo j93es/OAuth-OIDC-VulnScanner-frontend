@@ -47,6 +47,12 @@ Environment는 .env.example에 따라 설정되어야합니다.
 
 .env.example을 .env로 복사하여서 사용해주세요.
 
+# 쿠키와 로컬 스토리지 설정 방법
+
+```sh
+playwright open https://google.com/ --save-storage=./data/storage_state.json
+```
+
 # 실행
 
 ```sh
