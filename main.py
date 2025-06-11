@@ -148,7 +148,6 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 "--ignore-certificate-errors",
                 "--ignore-ssl-errors",
                 "--allow-running-insecure-content",
-                "--restore-last-session",
             ],
         )
 
