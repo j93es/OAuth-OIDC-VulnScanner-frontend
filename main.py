@@ -4,6 +4,7 @@ import os
 import csv
 import argparse
 from pathlib import Path
+from turtle import width
 import requests
 import time
 from typing import List
@@ -185,7 +186,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         # BrowserProfile에 모든 설정 포함
         profile = BrowserProfile(
             disable_security=True,
-            deterministic_rendering=True,
+            #deterministic_rendering=True,
             stealth=True,
             headless=False,
             # user_data_dir=str(user_data_path),
@@ -195,8 +196,10 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 if storage_state_temp_path and storage_state_temp_path.exists()
                 else None
             ),
+            device_scale_factor=1,
+            window_size={"width": 1600, "height": 900},
             viewport={"width": 1600, "height": 900},
-            # 프록시 설정
+
             proxy={"server": proxy_url} if proxy_url else None,
             # 추가 args
             args=[
