@@ -31,11 +31,10 @@ uv sync
 
 venv와 패키지가 설치가 됩니다.
 
-browser_use가 Playwright에 대한 의존성이 있어 브라우저 설치가 필요합니다
+~~browser_use가 Playwright에 대한 의존성이 있어 브라우저 설치가 필요합니다~~
 
-```sh
-uv run playwright install
-```
+스텔스 기능 때문에 Chrome이 필요합니다.
+
 
 다음과 같은 명령어로 실행합니다.
 
@@ -50,7 +49,7 @@ Environment는 .env.example에 따라 설정되어야합니다.
 # 쿠키와 로컬 스토리지 설정 방법
 
 ```sh
-playwright open https://google.com/ --save-storage=./data/storage_state.json
+uv run playwright open https://google.com/ --save-storage=./data/storage_state.json
 ```
 
 # 실행

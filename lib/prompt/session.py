@@ -1,5 +1,10 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
 # Extended planner prompt
-extend_planner_system_message = """
+extend_planner_system_message = f"""
 🎯 목적: 웹 자동화를 위한 **SSO 로그인 리디렉션 URL 수집**
 
 📌 주의사항 (전제 조건)
@@ -22,10 +27,10 @@ extend_planner_system_message = """
 
 ```json
 [
-  {
+  {{
     "provider": "Blocked",
     "oauth_uri": "-"
-  }
+  }}
 ]
 ````
 
@@ -67,6 +72,7 @@ extend_planner_system_message = """
    → 예: `https://accounts.google.com/o/oauth2/auth?...`
 3. ✅ 로그인 진행:
    - 세션 및 쿠키에 따라 이미 로그인된 상태로 간주하고 진행
+   - Google OAuth인 경우 URL에 `&login_hint={str(os.getenv('GOOGLE_ID'))}` 추가
    - **로그인 완료 후 authorize 등 버튼이 있으면 클릭**
    - GitHub같은 경우 Authorize 버튼이 뜨는데 오래걸릴 수 있음, 기다려야 할 수도 있음
    - 만약 버튼을 눌러도 반응이 없을 경우 새로고침을 한번 해주세요.
@@ -81,10 +87,10 @@ extend_planner_system_message = """
 
 ```json
 [
-  {
+  {{
     "provider": "Google",
     "oauth_uri": "https://example.com/auth/google?client_id=..."
-  }
+  }}
 ]
 ````
 
