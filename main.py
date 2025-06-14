@@ -43,7 +43,15 @@ backend_url = os.getenv("BACKEND_URL", "http://localhost:11081")
 if os.getenv("LMNR_PROJECT_API_KEY") and os.getenv("LMNR_BASEURL"):
     from lmnr import Laminar
     # this line auto-instruments Browser Use and any browser you use (local or remote)
-    Laminar.initialize(project_api_key=os.getenv("LMNR_PROJECT_API_KEY"), base_url=os.getenv("LMNR_BASEURL")) # you can also pass project api key here
+    if os.getenv("LMNR_HTTP_PORT") and os.getenv("LMNR_GRPC_PORT"):
+        Laminar.initialize(
+            project_api_key=os.getenv("LMNR_PROJECT_API_KEY"),
+            base_url=os.getenv("LMNR_BASEURL"),
+            http_port=int(os.getenv("LMNR_HTTP_PORT", "0")),
+            grpc_port=int(os.getenv("LMNR_GRPC_PORT", "0"))
+        )
+    else:
+        Laminar.initialize(project_api_key=os.getenv("LMNR_PROJECT_API_KEY"), base_url=os.getenv("LMNR_BASEURL")) # you can also pass project api key here
 
 print("🔧 환경 설정:")
 try:
