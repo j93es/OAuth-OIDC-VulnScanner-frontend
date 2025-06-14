@@ -17,6 +17,7 @@ from browser_use import (
     BrowserProfile,
     Controller,
 )
+from patchright.async_api import async_playwright as async_patchright
 from lib.is_html import is_html_url
 from lib.read_txt import read_lines_between
 from lib.prompt import extend_planner_system_message
@@ -39,10 +40,11 @@ backend_url = os.getenv("BACKEND_URL", "http://localhost:11081")
 
 print("🔧 환경 설정:")
 print(f"🔗 Backend URL: {backend_url}")
-api_key = os.getenv('GOOGLE_API_KEY')
+api_key = os.getenv("GOOGLE_API_KEY")
 print(f"🔑 Google API Key: {api_key[-4:] if api_key else None}")
 print(f"🌐 Google Model: {os.getenv('GOOGLE_MODEL')}")
 print(f"🌐 Google Planner Model: {os.getenv('GOOGLE_PLANNER_MODEL')}")
+
 
 # API 쿼터 처리를 위한 콜백 핸들러
 class QuotaExhaustedHandler(BaseCallbackHandler):
@@ -147,8 +149,8 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             print("🔗 No proxy configured, using direct connection.")
 
         # user_data_dir 설정
-        #user_data_path = Path("./data/user_data").resolve()
-        #user_data_path.mkdir(parents=True, exist_ok=True)
+        # user_data_path = Path("./data/user_data").resolve()
+        # user_data_path.mkdir(parents=True, exist_ok=True)
 
         storage_state_path = Path("./data/storage_state.json").resolve()
         storage_state_temp_path = Path("./data/storage_state_temp.json").resolve()
@@ -156,7 +158,9 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         if storage_state_path.exists():
             if storage_state_temp_path.exists():
                 storage_state_temp_path.unlink()
-            storage_state_temp_path.write_text(storage_state_path.read_text(), encoding="utf-8")
+            storage_state_temp_path.write_text(
+                storage_state_path.read_text(), encoding="utf-8"
+            )
             print(f"🔄 Using existing storage state: {storage_state_temp_path}")
         else:
             storage_state_temp_path = None
@@ -164,11 +168,17 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         # BrowserProfile에 모든 설정 포함
         profile = BrowserProfile(
             disable_security=True,
+            deterministic_rendering=True,
             stealth=True,
             headless=False,
-            #user_data_dir=str(user_data_path),
+            # user_data_dir=str(user_data_path),
             user_data_dir=None,
-            storage_state=str(storage_state_temp_path) if storage_state_temp_path and storage_state_temp_path.exists() else None,
+            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            storage_state=(
+                str(storage_state_temp_path)
+                if storage_state_temp_path and storage_state_temp_path.exists()
+                else None
+            ),
             viewport={"width": 1600, "height": 900},
             # 프록시 설정
             proxy={"server": proxy_url} if proxy_url else None,
@@ -184,11 +194,23 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 "--ignore-certificate-errors",
                 "--ignore-ssl-errors",
                 "--allow-running-insecure-content",
+                "--disable-web-security",
+                "--disable-features=VizDisplayCompositor",
+                "--disable-blink-features=AutomationControlled",
+                "--no-first-run",
+                "--no-service-autorun",
+                "--password-store=basic",
+                "--use-mock-keychain",
+                "--no-default-browser-check",
+                "--disable-extensions-file-access-check",
+                "--disable-extensions-http-throttling",
+                "--disable-component-extensions-with-background-pages",
             ],
         )
 
         # BrowserSession에 profile 전달
         session = BrowserSession(
+            playwright=(await async_patchright().start()),
             browser_profile=profile,
         )
 
@@ -200,9 +222,19 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             agent = Agent(
                 browser_session=session,
                 initial_actions=initial_actions,
-                task="Navigate to the login page, and collect the OAuth provider buttons and their login URLs. Ignore Passkey.",
-                llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_MODEL") or "fallback"),
-                planner_llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_PLANNER_MODEL") or "fallback"),
+                task=(
+                    "Navigate to the login page, identify all OAuth provider buttons (excluding Passkey), "
+                    "and for each one: click the button, follow the full OAuth login flow as far as possible "
+                    "with a real user account (without using a fake or non-existent account), and capture the "
+                    "final redirect URL after login. Do not stop at just collecting the initial authorization URL—"
+                    "actually perform the login step like a real user would. "
+                    "If the OAuth buttons do not appear immediately, wait briefly to allow the page to load completely before proceeding. "
+                    "Always log out before starting the login process, and make sure to attempt the login again from a clean state."
+                ),
+                llm=CreateChatGoogleGenerativeAI(
+                    os.getenv("GOOGLE_MODEL") or "fallback"
+                ),
+                # planner_llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_PLANNER_MODEL") or "fallback"),
                 controller=controller,
                 extend_planner_system_message=extend_planner_system_message(),
             )
@@ -214,7 +246,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             await clean_resources(agent, session)
             # API 쿼터 문제인지 확인
             if "ResourceExhausted" in str(e) or "429" in str(e):
-                wait = min(INITIAL_BACKOFF * (2 ** try_cnt), MAX_BACKOFF)
+                wait = min(INITIAL_BACKOFF * (2**try_cnt), MAX_BACKOFF)
                 print(f"⚠️ API 쿼터 에러: {e}. {wait}초 대기 후 재시도합니다...")
                 await asyncio.sleep(wait)
                 try_cnt += 1
@@ -245,7 +277,9 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         print("🔐 Detected OAuth Providers and URLs:")
         for entry in oauth_entries:
             if "<" in entry.oauth_uri or "..." in entry.oauth_uri:
-                print(f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n")
+                print(
+                    f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n"
+                )
             else:
                 print(f"- {entry.provider}: {entry.oauth_uri}")
         print("-" * 50)
