@@ -5,6 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "browser-use[memory]>=0.2.6",
+    "browser-use[memory]>=0.2.7",
     "patchright>=1.52.5",
 ]
