@@ -39,6 +39,17 @@ if os.getenv("GOOGLE_PLANNER_MODEL") is None:
 backend_url = os.getenv("BACKEND_URL", "http://localhost:11081")
 
 print("🔧 환경 설정:")
+try:
+    # run uv pip show browser-use
+    import subprocess
+    result = subprocess.run(
+        ["uv", "pip", "show", "browser-use"], capture_output=True, text=True, check=True
+    )
+
+    print("📦 Browser Use 패키지 정보:")
+    print(result.stdout.strip())
+except ImportError:
+    browser_use_version = "unknown"
 print(f"🔗 Backend URL: {backend_url}")
 api_key = os.getenv("GOOGLE_API_KEY")
 print(f"🔑 Google API Key: {api_key[-4:] if api_key else None}")
@@ -159,7 +170,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             if storage_state_temp_path.exists():
                 storage_state_temp_path.unlink()
             storage_state_temp_path.write_text(
-                storage_state_path.read_text(), encoding="utf-8"
+                storage_state_path.read_text(encoding="utf-8"), encoding="utf-8"
             )
             print(f"🔄 Using existing storage state: {storage_state_temp_path}")
         else:
@@ -173,7 +184,6 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             headless=False,
             # user_data_dir=str(user_data_path),
             user_data_dir=None,
-            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             storage_state=(
                 str(storage_state_temp_path)
                 if storage_state_temp_path and storage_state_temp_path.exists()

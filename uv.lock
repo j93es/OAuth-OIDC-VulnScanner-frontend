@@ -103,7 +103,7 @@ wheels = [
 
 [[package]]
 name = "browser-use"
-version = "0.2.6"
+version = "0.2.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -134,9 +134,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "uuid7" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/50/75/1b5f7e63bcb6bf6426e3c74a9b15d538fe4dae7f988b01852ee003cef1bc/browser_use-0.2.6.tar.gz", hash = "sha256:8a7f1b2217fb344101a36473446073ad642f259197477f5d7044124f2ba7d895", size = 151752, upload-time = "2025-06-10T10:55:42.02Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/42/86/8d25175730145a8f94715e5ceb3e050d8221fc81d7dee8c8f18ddf4206a3/browser_use-0.2.7.tar.gz", hash = "sha256:a2e0b0eb34e6fb5ef46e4e10ad0b4a42854fc2445d3e53b3ba393b9295019725", size = 155467, upload-time = "2025-06-14T08:55:54.739Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/d4/695a753f3631d8888fa6942154254291473ee6cbde4938505024b39e244b/browser_use-0.2.6-py3-none-any.whl", hash = "sha256:9142ee79555eca1ea29aad0a8b44d31f4f50a3a8d7e91ca6367fb733bc36a4e1", size = 168764, upload-time = "2025-06-10T10:55:40.474Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/93/2305e33ca4470abafd087be820256bd96c495ab685425582d811bb22837a/browser_use-0.2.7-py3-none-any.whl", hash = "sha256:bc534a369ef85ff3905abae05dab1d4a996676ad285a3dff9aa6c5211854872d", size = 172584, upload-time = "2025-06-14T08:55:53.355Z" },
 ]
 
 [package.optional-dependencies]
@@ -155,7 +155,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "browser-use", extras = ["memory"], specifier = ">=0.2.6" },
+    { name = "browser-use", extras = ["memory"], specifier = ">=0.2.7" },
     { name = "patchright", specifier = ">=1.52.5" },
 ]
 
