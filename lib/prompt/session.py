@@ -73,6 +73,7 @@ extend_planner_system_message = f"""
 3. ✅ 로그인 진행:
    - 세션 및 쿠키에 따라 이미 로그인된 상태로 간주하고 진행
    - Google OAuth인 경우 URL에 `&login_hint={str(os.getenv('GOOGLE_ID'))}` 추가
+   - 버튼같은게 안눌리면 새로고침을 해봐
    - **로그인 완료 후 authorize 등 버튼이 있으면 클릭**
    - GitHub같은 경우 Authorize 버튼이 뜨는데 오래걸릴 수 있음, 기다려야 할 수도 있음
    - 만약 버튼을 눌러도 반응이 없을 경우 새로고침을 한번 해주세요.

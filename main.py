@@ -38,6 +38,12 @@ if os.getenv("GOOGLE_PLANNER_MODEL") is None:
 
 backend_url = os.getenv("BACKEND_URL", "http://localhost:11081")
 
+
+if os.getenv("LMNR_PROJECT_API_KEY"):
+    from lmnr import Laminar
+    # this line auto-instruments Browser Use and any browser you use (local or remote)
+    Laminar.initialize(project_api_key=os.getenv("LMNR_PROJECT_API_KEY")) # you can also pass project api key here
+
 print("🔧 환경 설정:")
 try:
     # run uv pip show browser-use
@@ -244,7 +250,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 llm=CreateChatGoogleGenerativeAI(
                     os.getenv("GOOGLE_MODEL") or "fallback"
                 ),
-                # planner_llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_PLANNER_MODEL") or "fallback"),
+                planner_llm=CreateChatGoogleGenerativeAI(os.getenv("GOOGLE_PLANNER_MODEL") or "fallback"),
                 controller=controller,
                 extend_planner_system_message=extend_planner_system_message(),
             )
