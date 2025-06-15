@@ -103,7 +103,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         # BrowserSession에 profile 전달
         session = BrowserSession(
             playwright=(await async_patchright().start()),
-            browser_profile=browser_use.profile,
+            browser_profile=browser_use.GetProfile(),
         )
 
         # Agent 생성 및 실행 (단일 try-except with 백오프)
