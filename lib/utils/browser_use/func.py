@@ -22,8 +22,13 @@ def setup_proxy():
 
 def setup_storage_state():
     """Setup browser storage state for session persistence."""
-    storage_state_path = Path("./data/storage_state.json").resolve()
-    storage_state_temp_path = Path("./data/storage_state_temp.json").resolve()
+    # Get the script directory to ensure correct path resolution
+    script_dir = Path(__file__).parent.parent.parent.parent
+    storage_state_path = script_dir / "data" / "storage_state.json"
+    storage_state_temp_path = script_dir / "data" / "storage_state_temp.json"
+    
+    print(f"📂 Storage state path: {storage_state_path}")
+    print(f"📂 Temp storage state path: {storage_state_temp_path}")
 
     if storage_state_path.exists():
         if storage_state_temp_path.exists():
@@ -35,6 +40,7 @@ def setup_storage_state():
         print(f"🔄 Using existing storage state: {storage_state_temp_path}")
         return str(storage_state_temp_path)
 
+    print("⚠️ No existing storage state found")
     return None
 
 
