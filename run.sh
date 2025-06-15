@@ -3,7 +3,6 @@
 # ── 설정 부분 ──
 PYTHON_SCRIPT="main.py"
 DOMAIN_FILE="./domains.txt"
-CHUNK_SIZE=10
 # ─────────────
 
 curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o $DOMAIN_FILE
@@ -23,18 +22,7 @@ if [ -z "$SKH_OPTION" ]; then
   SKH_OPTION="False"
 fi
 
-current=$START_LINE
-while [ "$current" -le "$END_LINE" ]; do
-  chunk_end=$(( current + CHUNK_SIZE - 1 ))
-  if [ "$chunk_end" -gt "$END_LINE" ]; then
-    chunk_end=$END_LINE
-  fi
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Processing lines ${START_LINE} to ${END_LINE}..."
+uv run "$PYTHON_SCRIPT" -f "$DOMAIN_FILE" -s "$START_LINE" -e "$END_LINE" -skh $SKH_OPTION
 
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Processing lines ${current} to ${chunk_end}..."
-  uv run "$PYTHON_SCRIPT" -f "$DOMAIN_FILE" -s "$current" -e "$chunk_end" -skh $SKH_OPTION
-
-  current=$(( chunk_end + 1 ))
-  sleep 1  # 1초 대기
-done
-
-echo "모든 청크 처리 완료."
+echo "처리 완료."

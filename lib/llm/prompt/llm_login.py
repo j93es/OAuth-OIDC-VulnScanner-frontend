@@ -1,17 +1,34 @@
+from dotenv import load_dotenv
+import os
+
+load_dotenv(override=True)
+google_id = os.getenv("GOOGLE_ID", "")
+google_password = os.getenv("GOOGLE_PASSWORD", "")
+
+naver_id = os.getenv("NAVER_ID", "")
+naver_password = os.getenv("NAVER_PASSWORD", "")
+
+facebook_id = os.getenv("FACEBOOK_ID", "")
+facebook_password = os.getenv("FACEBOOK_PASSWORD", "")
+
+github_id = os.getenv("GITHUB_ID", "")
+github_password = os.getenv("GITHUB_PASSWORD", "")
+
 # Extended planner prompt
-extend_planner_system_message = """
+extend_planner_system_message = f"""
 🎯 Mission: Collect Initial SSO Redirect URLs (For Browser Automation)
 
 ※ **모든 STEP에서 구글 검색, Bing 검색 등 어떤 외부 검색 기능도 절대 사용하지 않고, 초기에 주어진 URL에서 탐색하세요.**
+※ **초기에 주어진 URL 내에서 실제로 확인되지 않은 URL로 직접 이동하는것은 허용되지 않습니다.**
 
 0. **초기 블록(Block) 체크**
    - 브라우저가 로그인 페이지에 접근하려 할 때, **페이지가 차단(blocked)** 되거나 **방화벽, CAPTCHA, 접근 제한** 등으로 인해 정상적으로 로드되지 않으면 즉시 프로세스를 종료하고 아래 JSON만 반환해야 합니다.  
      ```json
      [
-       {
+       {{
          "provider": "Blocked",
          "oauth_uri": "-"
-       }
+       }}
      ]
      ```
    - 이후 단계로 절대 넘어가지 않도록 합니다.
@@ -23,9 +40,7 @@ extend_planner_system_message = """
 
 2. **SSO 버튼 식별**
    - 로그인 페이지에서 다음과 같은 소셜 로그인 버튼을 찾습니다:
-     - “Continue with Google”
-     - “Sign in with GitHub”
-     - “Login with Naver”
+     - Google, GitHub, Facebook, Linkedin, Microsoft, Naver”
    - ✅ **실제 SSO 버튼**임이 명확히 확인되는 경우에만 진행합니다.
    - ❌ 제외 대상:
      - “Passkey” 관련 버튼
@@ -33,28 +48,29 @@ extend_planner_system_message = """
      - 이메일 기반 로그인
      - 인증서, 휴대폰 인증 등 비-OAuth 로그인 옵션
 
-3. **리디렉션 URL 캡처**
-   - 유효한 SSO 버튼을 하나 이상 찾았다면, 각각의 버튼을 **새 탭으로 열기**를 시도하거나, 불가능할 경우 **직접 클릭**합니다.
-   - 클릭 후 첫 번째로 **리디렉션된 URL(쿼리 스트링 포함)**을 캡처합니다. 이 URL은:
-     - ✅ 예시: `https://example.com/auth/google?include_all_params=...`
-     - ❌ **OAuth 공급자 자체 엔드포인트** (예: `https://accounts.google.com/...`)는 수집하지 않습니다.
-   - 만약 **반복 행동(looping)**이 감지될 경우(예: 동일한 버튼을 여러 번 열거나 페이지 간 반복 이동), 즉시 프로세스를 종료하고 **빈 배열**을 반환합니다:
-     ```json
-     []
-     ```
-   - 정상적으로 리디렉션 URL을 획득했다면, 아래 형식으로 결과를 수집합니다:
-     ```json
-     [
-       {
-         "provider": "Google",
-         "oauth_uri": "https://example.com/auth/google?include_all_params=..."
-       },
-       {
-         "provider": "GitHub",
-         "oauth_uri": "https://example.com/auth/github?include_all_params=..."
-       }
-     ]
-     ```
+3. **SSO 버튼 클릭 및 로그인 시도**
+   - 유효한 SSO 버튼이 발견되면, 버튼을 클릭합니다.
+   - 클릭 후 **첫 번째로 리디렉션된 URL(쿼리 스트링 포함)**을 `oauth_uri`로 기록합니다.
+   - 공급자 페이지가 열리면, 아래 자격증명을 이용해 로그인을 시도합니다, 아래 자격증명에 포함되지 않는 SSO 버튼도 클릭까지는 시도합니다.:
+     - Google → `{google_id}` / `{google_password}`
+     - Naver → `{naver_id}` / `{naver_password}`
+     - GitHub → `{github_id}` / `{github_password}`
+     - 자격증명이 주어진 SSO 버튼인 경우 로그인 과정을 꼭 진행합니다.
+     - 로그인 과정이 모두 끝나거나 로그인이 되지 않는 경우 세션 및 쿠키를 모두 삭제하고 페이지를 새로고침합니다.
+     - 아직 로그인을 시도하지 않은 SSO 버튼이 있다면 이전 단계인 1. **로그인 페이지 탐색**, 2. **SSO 버튼 식별**, 3. **SSO 버튼 클릭 및 로그인 시도** 로 돌아가 절차를 반복합니다.
+     - 최종 결과는 다음과 같이 기록합니다:
+    ```json
+    [
+      {{
+        "provider": "Google",
+        "oauth_uri": "(optional) https://example.com/auth/google?client_id=...",
+      }},
+      {{
+        "provider": "Naver",
+        "oauth_uri": "(optional) https://example.com/auth/naver?client_id=...",
+      }}
+    ]
+    ```
 
 4. **SSO 버튼 미발견 또는 오류 발생 시**
    - 페이지 내부에 유효한 SSO 버튼이 전혀 없거나, 탐색 중 예기치 않은 오류가 발생하면 즉시 프로세스를 종료하고 **빈 배열**을 반환합니다:
