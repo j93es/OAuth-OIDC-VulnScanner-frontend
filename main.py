@@ -3,6 +3,8 @@ import json
 import os
 import csv
 import argparse
+from pathlib import Path
+import signal
 
 from dotenv import load_dotenv
 
@@ -31,11 +33,52 @@ load_dotenv(verbose=True, override=True)
 INITIAL_BACKOFF = int(os.getenv("INITIAL_BACKOFF", "60"))  # seconds
 MAX_BACKOFF = int(os.getenv("MAX_BACKOFF", "600"))  # seconds
 
+# 진행 상황 추적을 위한 전역 변수
+current_progress = {"current_index": 0, "total": 0, "current_url": "", "start_line": 0}
+progress_file = Path("data/scan_progress.json")
+
 env_cheker()
 if os.getenv("LMNR_PROJECT_API_KEY"):
     from lmnr import Laminar
 
     Laminar.initialize(project_api_key=os.getenv("LMNR_PROJECT_API_KEY"))
+
+
+def save_progress():
+    """현재 진행 상황을 파일에 저장"""
+    with open(progress_file, 'w', encoding='utf-8') as f:
+        json.dump(current_progress, f, ensure_ascii=False, indent=2)
+
+
+def load_progress():
+    """이전 진행 상황을 파일에서 불러오기"""
+    if os.path.exists(progress_file):
+        try:
+            with open(progress_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return None
+    return None
+
+
+def signal_handler(signum, frame):
+    """Ctrl+C 시그널 핸들러"""
+    print("\n" + "="*60)
+    print("🛑 스캔이 중단되었습니다!")
+    print(f"📊 진행 상황:")
+    print(f"   - 전체: {current_progress['total']}개 URL")
+    print(f"   - 완료: {current_progress['current_index']}개 URL")
+    print(f"   - 현재 처리 중: {current_progress['current_url']}")
+    print(f"   - domains.txt의 {current_progress['start_line'] + current_progress['current_index']}번째 줄")
+    print(f"   - 진행률: {current_progress['current_index']}/{current_progress['total']} ({current_progress['current_index']/current_progress['total']*100:.1f}%)")
+    print("="*60)
+    save_progress()
+    print(f"💾 진행 상황이 {progress_file}에 저장되었습니다.")
+    exit(0)
+
+
+# 시그널 핸들러 등록
+signal.signal(signal.SIGINT, signal_handler)
 
 
 # ── URL별로 Browser를 새로 띄우는 함수 ──
@@ -150,18 +193,50 @@ async def loop(
         filepath=filepath, start_line=start_line, end_line=end_line
     )
 
+    # 진행 상황 초기화
+    current_progress["total"] = len(target_list)
+    current_progress["start_line"] = start_line
+    current_progress["current_index"] = 0
+    
+    # 이전 진행 상황 확인
+    prev_progress = load_progress()
+    if prev_progress and prev_progress.get("start_line") == start_line:
+        print(f"📋 이전 진행 상황을 발견했습니다:")
+        print(f"   - 이전 완료: {prev_progress['current_index']}/{prev_progress['total']}")
+        print(f"   - 마지막 처리: {prev_progress.get('current_url', 'N/A')}")
+        
+        resume = input("이어서 진행하시겠습니까? (y/n): ").lower().strip()
+        if resume == 'y':
+            current_progress["current_index"] = prev_progress["current_index"]
+            target_list = target_list[current_progress["current_index"]:]
+            print(f"✅ {current_progress['current_index']}번째부터 재개합니다.")
+
     # (필요하다면) 강제 설정이 필요한 경우, 아래 주석을 해제하여 target_list[0] 등을 덮어쓸 수 있습니다.
     # target_list[0] = "velog.io"
 
     for i, url in enumerate(target_list):
-        print(f"\n🔄 Processing {i+1}/{len(target_list)}: {url}")
+        actual_index = current_progress["current_index"] + i
+        current_progress["current_url"] = url
+        current_progress["current_index"] = actual_index
+        
+        print(f"\n🔄 Processing {actual_index + 1}/{current_progress['total']}: {url}")
+        print(f"📍 domains.txt의 {start_line + actual_index}번째 줄")
 
         # URL들 사이에 API 쿼터 회복을 위한 대기 시간 추가
-        if i > 0:
+        if actual_index > 0:
             print("⏳ API 쿼터 보호를 위해 30초 대기 중...")
             await asyncio.sleep(30)
 
         await scan_one_url(url, skip_html_check=skip_html_check)
+        
+        # 진행 상황 저장
+        current_progress["current_index"] = actual_index + 1
+        save_progress()
+
+    print(f"\n🎉 모든 스캔이 완료되었습니다! ({current_progress['total']}개 URL)")
+    # 완료 후 진행 상황 파일 삭제
+    if os.path.exists(progress_file):
+        os.remove(progress_file)
 
 
 def main():

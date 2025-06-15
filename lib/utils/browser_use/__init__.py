@@ -1,5 +1,4 @@
-from func import *
-import clean_resources as clean_resources_func
+from lib.utils.browser_use.func import *
 
 # Initialize configuration
 proxy_url = setup_proxy()
