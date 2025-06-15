@@ -20,7 +20,7 @@ def setup_proxy():
         return None
 
 
-def setup_storage_state():
+async def setup_storage_state():
     """Setup browser storage state for session persistence."""
     # Get the script directory to ensure correct path resolution
     script_dir = Path(__file__).parent.parent.parent.parent

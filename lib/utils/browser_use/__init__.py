@@ -2,11 +2,10 @@ from lib.utils.browser_use.func import *
 
 # Initialize configuration
 proxy_url = setup_proxy()
-storage_state_path = setup_storage_state()
 
 # Create browser profile
-def GetProfile():
-    setup_storage_state()
+async def GetProfile():
+    storage_state_path = await setup_storage_state()
     profile = BrowserProfile(
         # Security settings
         disable_security=True,

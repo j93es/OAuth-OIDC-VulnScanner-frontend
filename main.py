@@ -84,7 +84,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # ── URL별로 Browser를 새로 띄우는 함수 ──
 async def scan_one_url(url: str, skip_html_check: bool = False):
-    setup_storage_state()
+    await setup_storage_state()
     target_url = url if url.startswith("http") else f"https://{url}"
     print(f"🚀 Starting scan for: {target_url}")
 
@@ -103,7 +103,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         # BrowserSession에 profile 전달
         session = BrowserSession(
             playwright=(await async_patchright().start()),
-            browser_profile=browser_use.GetProfile(),
+            browser_profile=await browser_use.GetProfile(),
         )
 
         # Agent 생성 및 실행 (단일 try-except with 백오프)
