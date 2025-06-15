@@ -19,6 +19,7 @@ from lib.utils import env_cheker
 from lib.utils.backend_client import notify_backend
 from lib.utils.browser_use import model
 from lib.utils.browser_use.clean_resources import clean_resources
+from lib.utils.browser_use.func import setup_storage_state
 from lib.utils.config import BACKEND_URL, GOOGLE_MODEL, GOOGLE_PLANNER_MODEL
 from lib.utils.is_html import is_html_url
 from lib.utils.read_txt import read_lines_between
@@ -83,6 +84,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # ── URL별로 Browser를 새로 띄우는 함수 ──
 async def scan_one_url(url: str, skip_html_check: bool = False):
+    setup_storage_state()
     target_url = url if url.startswith("http") else f"https://{url}"
     print(f"🚀 Starting scan for: {target_url}")
 
@@ -128,6 +130,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             )
             response = await agent.run()
             final_result = response.final_result()
+            
             if final_result is None:
                 raise ValueError("final_result()가 None을 반환했습니다.")
         except Exception as e:
