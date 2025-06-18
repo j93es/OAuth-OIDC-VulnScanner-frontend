@@ -176,7 +176,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         print("-" * 50)
 
         # CSV에 저장 (append)
-        csv_file = "./oauth_providers.csv"
+        csv_file = "./data/oauth_providers.csv"
         file_exists = os.path.isfile(csv_file)
         with open(csv_file, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)

@@ -3,7 +3,7 @@
 $PYTHON_SCRIPT = "main.py"
 
 # 도메인 목록 파일 경로 (Python 스크립트 실행 시 -f 옵션에 전달)
-$DOMAIN_FILE = "./domains.txt"
+$DOMAIN_FILE = "./data/domains.txt"
 # ─────────────
 
 # https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt
