@@ -11,7 +11,7 @@
 >
 > 그렇지 않으면 실행되지 않습니다.
 >
-> 윈도우 환경에서는 `sudo  certutil -addstore root mitmproxy-ca-cert.cer`로 인증합니다.
+> 윈도우 환경에서는 `sudo certutil -addstore root mitmproxy-ca-cert.cer`로 인증합니다.
 > 
 > Sudo가 활성화되어있지 않은 환경에서는 관리자로 상향된 쉘에서 실행합니다.
 >
@@ -71,6 +71,8 @@ uv run playwright open https://google.com/ --save-storage=./data/storage_state.j
 `.sensitive.example.json`을 `.sensitive.json`으로 복사해서
 
 안에 있는 예시 내용을 참고해서 작성해주시면 됩니다.
+더 자세한 내용은 
+[Sensitive Data - Browser Use](https://docs.browser-use.com/customize/sensitive-data)를 참고하시면 좋을 것 같습니다.
 
 [Sensitive Data - Browser Use](https://docs.browser-use.com/customize/sensitive-data)에서도 권장하지 않는 방법인만큼 애매하긴 하지만 쿠키와 로컬 스토리지를 저장하기 어려운 경우나 일부 flow에서 접근이 어려운 경우 사용해주세요.
 </details>
