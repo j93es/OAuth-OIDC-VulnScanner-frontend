@@ -64,7 +64,7 @@ uv run playwright open https://google.com/ --save-storage=./data/storage_state.j
 
 위 명령어를 실행하면 playwright Browser가 하나 열리는데 여기서 원하는 프로바이더를 모두 로그인 한 후에 브라우저를 정상적으로 닫으면 ./data/storage_state.json 경로에 쿠키, 로컬스토리지를 저장한 파일이 생성됩니다.
 
-## Browser Use에게 직접 로그인 요청
+## Browser Use에게 직접 로그인 요청 (선택)
 <details>
 위에 쿠키와 로컬스토리지 설정 방법과 혼용해서 사용가능합니다.
 
