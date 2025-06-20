@@ -2,7 +2,7 @@
 
 # ── 설정 부분 ──
 PYTHON_SCRIPT="main.py"
-DOMAIN_FILE="./domains.txt"
+DOMAIN_FILE="./data/domains.txt"
 # ─────────────
 
 curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o $DOMAIN_FILE

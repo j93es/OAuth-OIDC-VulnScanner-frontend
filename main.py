@@ -20,6 +20,7 @@ from lib.utils.backend_client import notify_backend
 from lib.utils.browser_use import model
 from lib.utils.browser_use.clean_resources import clean_resources
 from lib.utils.browser_use.func import setup_storage_state
+from lib.utils.browser_use.sensitive_data import GetSensitiveData
 from lib.utils.config import BACKEND_URL, GOOGLE_MODEL, GOOGLE_PLANNER_MODEL
 from lib.utils.is_html import is_html_url
 from lib.utils.read_txt import read_lines_between
@@ -114,6 +115,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             agent = Agent(
                 browser_session=session,
                 initial_actions=initial_actions,
+                sensitive_data=GetSensitiveData(),
                 task=(
                     "Navigate to the login page, identify all OAuth provider buttons (excluding Passkey), "
                     "and for each one: click the button, follow the full OAuth login flow as far as possible "
@@ -176,7 +178,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         print("-" * 50)
 
         # CSV에 저장 (append)
-        csv_file = "./oauth_providers.csv"
+        csv_file = "./data/oauth_providers.csv"
         file_exists = os.path.isfile(csv_file)
         with open(csv_file, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)

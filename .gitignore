@@ -12,6 +12,7 @@ oauth_providers.csv
 .venv
 
 .env
+.sensitive.json
 log_*.log
 
 domains.txt
