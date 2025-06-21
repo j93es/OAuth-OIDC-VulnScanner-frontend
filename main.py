@@ -12,8 +12,10 @@ from browser_use import (
     Agent,
     BrowserSession,
     Controller,
+    ActionResult,
 )
 from patchright.async_api import async_playwright as async_patchright
+from playwright.async_api import Page
 
 from lib.utils import env_cheker
 from lib.utils.backend_client import notify_backend
@@ -109,8 +111,21 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
 
         # Agent 생성 및 실행 (단일 try-except with 백오프)
         initial_actions = [{"open_tab": {"url": target_url}}]
-        controller = Controller(output_model=model.BaseModel)
+        controller = Controller(output_model=model.BaseModel, exclude_actions=['search_google'])
+        
+        @controller.action('clear_cookies')
+        async def clear_cookies(browser_session: BrowserSession) -> ActionResult:
+            # Clear all cookies for the current context
+            page = await browser_session.get_current_page()
+            await page.context.clear_cookies()
+            await page.context.clear_permissions()
+            await page.reload()
+            
+            print("🗑️ All cookies have been cleared.")
+            return ActionResult(extracted_content="All cookies have been cleared")
+        
         print("🤖 LLM 모델 초기화 및 스캔 시작...")
+        print("Available actions:", list(controller.registry.registry.actions.keys()))
         try:
             agent = Agent(
                 browser_session=session,
@@ -128,7 +143,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 llm=CreateChatGoogleGenerativeAI(GOOGLE_MODEL),
                 planner_llm=CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL),
                 controller=controller,
-                extend_planner_system_message=extend_planner_system_message(),
+                extend_planner_system_message=extend_planner_system_message,
             )
             response = await agent.run()
             final_result = response.final_result()
