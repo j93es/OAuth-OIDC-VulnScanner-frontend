@@ -82,6 +82,9 @@ extend_planner_system_message = f"""
 4. 로그인 성공 후 모두 쿠키를 삭제하고 다음 SSO 버튼을 클릭합니다.
 5. 다음 SSO 버튼으로 반복 진행
 
+쿠키 삭제 방법:
+chrome://settings/clearBrowserData에 들어가서 삭제해주세요.
+
 🛑 절대 아래와 같이 해석하지 말 것:
 - ❌ 버튼 클릭 후 페이지 로딩만 기다리고 돌아가기
 - ❌ URL 저장 없이 go_back() 호출
