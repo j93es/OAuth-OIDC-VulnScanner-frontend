@@ -15,6 +15,7 @@ from browser_use import (
     ActionResult,
 )
 from patchright.async_api import async_playwright as async_patchright, Page
+from pydantic import BaseModel
 
 from lib.utils import env_cheker
 from lib.utils.backend_client import notify_backend
@@ -111,44 +112,6 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         # Agent 생성 및 실행 (단일 try-except with 백오프)
         initial_actions = [{"open_tab": {"url": target_url}}]
         controller = Controller(output_model=model.BaseModel, exclude_actions=['search_google'])
-        
-        @controller.action('Clear all cookies and reload page')
-        async def clear_cookies(browser_session: BrowserSession) -> ActionResult:
-            print("🔧 Executing clear_cookies action...")
-
-            # Get the current page
-            page = await browser_session.get_current_page()
-            if not page:
-                print("❌ 현재 페이지를 찾을 수 없습니다. 쿠키를 지울 수 없습니다.")
-                return ActionResult(
-                    extracted_content="현재 페이지를 찾을 수 없습니다.",
-                    include_in_memory=True
-                )
-            if not isinstance(page, Page):
-                print("❌ 현재 페이지가 올바른 타입이 아닙니다. 쿠키를 지울 수 없습니다.")
-                return ActionResult(
-                    extracted_content="현재 페이지가 올바른 타입이 아닙니다.",
-                    include_in_memory=True
-                )
-            print(f"🔍 현재 페이지 URL: {page.url}")
-            
-            try:
-                # Clear all cookies for the current context
-                await page.context.clear_cookies()
-                await page.context.clear_permissions()
-                await page.reload()
-                
-                print("🗑️ All cookies have been cleared and page reloaded.")
-                return ActionResult(
-                    extracted_content="Successfully cleared all cookies and reloaded the page",
-                    include_in_memory=True
-                )
-            except Exception as e:
-                print(f"❌ Error clearing cookies: {e}")
-                return ActionResult(
-                    extracted_content=f"Failed to clear cookies: {str(e)}",
-                    include_in_memory=True
-                )
 
         print("🤖 LLM 모델 초기화 및 스캔 시작...")
         print("Available actions:", list(controller.registry.registry.actions.keys()))
