@@ -12,8 +12,10 @@ from browser_use import (
     Agent,
     BrowserSession,
     Controller,
+    ActionResult,
 )
-from patchright.async_api import async_playwright as async_patchright
+from patchright.async_api import async_playwright as async_patchright, Page
+from pydantic import BaseModel
 
 from lib.utils import env_cheker
 from lib.utils.backend_client import notify_backend
@@ -109,8 +111,10 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
 
         # Agent 생성 및 실행 (단일 try-except with 백오프)
         initial_actions = [{"open_tab": {"url": target_url}}]
-        controller = Controller(output_model=model.BaseModel)
+        controller = Controller(output_model=model.BaseModel, exclude_actions=['search_google'])
+
         print("🤖 LLM 모델 초기화 및 스캔 시작...")
+        print("Available actions:", list(controller.registry.registry.actions.keys()))
         try:
             agent = Agent(
                 browser_session=session,
@@ -128,7 +132,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 llm=CreateChatGoogleGenerativeAI(GOOGLE_MODEL),
                 planner_llm=CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL),
                 controller=controller,
-                extend_planner_system_message=extend_planner_system_message(),
+                extend_planner_system_message=extend_planner_system_message,
             )
             response = await agent.run()
             final_result = response.final_result()
