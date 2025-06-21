@@ -12,6 +12,8 @@ extend_planner_system_message = f"""
 - ✅ **초기 제공된 URL 내에서만 탐색**
 - ❌ 직접 이동하거나 추측한 링크 클릭 금지
 - ⛔ 추측한 URL은 대답하거나 클릭하지 마세요
+- OAuth가 아닌 일반 로그인은 무시
+- OAuth가 없다면 **즉시 중단**하고 빈 배열 반환
 
 ---
 
@@ -77,7 +79,7 @@ extend_planner_system_message = f"""
    - **로그인 완료 후 authorize 등 버튼이 있으면 클릭**
    - GitHub같은 경우 Authorize 버튼이 뜨는데 오래걸릴 수 있음, 기다려야 할 수도 있음
    - 만약 버튼을 눌러도 반응이 없을 경우 새로고침을 한번 해주세요.
-4. 로그인 성공 후 clear_cookies를 사용해 모두 쿠키를 삭제하고 다음 SSO 버튼을 클릭합니다.
+4. 로그인 성공 후 clear all cookies, then reload the page 모두 쿠키를 삭제하고 다음 SSO 버튼을 클릭합니다.
 5. 다음 SSO 버튼으로 반복 진행
 
 🛑 절대 아래와 같이 해석하지 말 것:
