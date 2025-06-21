@@ -130,7 +130,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                     "Always log out before starting the login process, and make sure to attempt the login again from a clean state."
                 ),
                 llm=CreateChatGoogleGenerativeAI(GOOGLE_MODEL),
-                #planner_llm=CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL),
+                planner_llm=CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL),
                 controller=controller,
                 extend_planner_system_message=extend_planner_system_message,
             )
