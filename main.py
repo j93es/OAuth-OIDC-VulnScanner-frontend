@@ -26,7 +26,7 @@ from lib.utils.browser_use.sensitive_data import GetSensitiveData
 from lib.utils.config import BACKEND_URL, GOOGLE_MODEL, GOOGLE_PLANNER_MODEL
 from lib.utils.is_html import is_html_url
 from lib.utils.read_txt import read_lines_between
-from lib.llm.prompt import extend_planner_system_message
+from lib.llm.prompt import get_prompt
 from lib.utils.logger import logger
 import lib.utils.browser_use as browser_use
 from lib.llm import CreateChatGoogleGenerativeAI
@@ -89,52 +89,46 @@ def signal_handler(signum, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-# ── URL별로 Browser를 새로 띄우는 함수 ──
-async def scan_one_url(url: str, skip_html_check: bool = False):
+# ── OAuth 리스트 추출 Agent ──
+async def extract_oauth_list(url: str, skip_html_check: bool = False):
+    """첫 번째 Agent: 로그인 페이지를 찾고 OAuth 리스트만 추출"""
     await setup_storage_state()
     target_url = url if url.startswith("http") else f"https://{url}"
-    print(f"🚀 Starting scan for: {target_url}")
+    print(f"� OAuth 리스트 추출 시작: {target_url}")
 
     # 1) URL이 HTML 페이지인지 확인
     if not is_html_url(target_url) and not skip_html_check:
         print(f"❌ {target_url} 은(는) HTML이 아닙니다. 스킵합니다.")
-        return
-
-    # Backend에 스캔 시작을 알림
-    notify_backend(target_url)
+        return []
 
     agent = None
     session = None
     try_cnt = 0
+    
     while True:
-        # BrowserSession에 profile 전달
         session = BrowserSession(
             playwright=(await async_patchright().start()),
             browser_profile=await browser_use.GetProfile(),
         )
 
-        # Agent 생성 및 실행 (단일 try-except with 백오프)
         initial_actions = [{"open_tab": {"url": target_url}}]
         controller = Controller(
-            output_model=model.BaseModel,
+            output_model=model.OAuthList,
             exclude_actions=["search_google", "unknown_action", "unkown"],
         )
 
-        print("🤖 LLM 모델 초기화 및 스캔 시작...")
-        print("Available actions:", list(controller.registry.registry.actions.keys()))
+        print("🤖 OAuth 리스트 추출 Agent 초기화...")
+        
         try:
             agent = Agent(
                 browser_session=session,
                 initial_actions=initial_actions,
                 sensitive_data=GetSensitiveData(),
                 task=(
-                    "Navigate to the login page, identify all OAuth provider buttons (excluding Passkey), "
-                    "and for each one: click the button, follow the full OAuth login flow as far as possible "
-                    "with a real user account (without using a fake or non-existent account), and capture the "
-                    "final redirect URL after login. Do not stop at just collecting the initial authorization URL—"
-                    "actually perform the login step like a real user would. "
-                    "If the OAuth buttons do not appear immediately, wait briefly to allow the page to load completely before proceeding. "
-                    "Always log out before starting the login process, and make sure to attempt the login again from a clean state."
+                    "Navigate to the login page and identify all OAuth provider buttons (excluding Passkey). "
+                    "DO NOT click any OAuth buttons or attempt to login. "
+                    "Just find and list all available OAuth providers with their button texts or provider names. "
+                    "Return a list of OAuth providers found on the login page."
                 ),
                 llm=CreateChatGoogleGenerativeAI(GOOGLE_MODEL),
                 planner_llm=(
@@ -143,13 +137,21 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                     else None
                 ),
                 controller=controller,
-                extend_planner_system_message=extend_planner_system_message,
+                extend_planner_system_message=get_prompt("auth"),
             )
+            
             response = await agent.run()
             final_result = response.final_result()
 
             if final_result is None:
-                raise ValueError("final_result()가 None을 반환했습니다.")
+                raise ValueError("OAuth 리스트 추출 결과가 None입니다.")
+                
+            data = json.loads(final_result)
+            oauth_entries = [model.OAuth(**entry) for entry in data["oauth_providers"]]
+            
+            await clean_resources(agent, session)
+            return oauth_entries
+            
         except Exception as e:
             await clean_resources(agent, session)
             # API 쿼터 문제인지 확인
@@ -159,52 +161,149 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                 await asyncio.sleep(wait)
                 try_cnt += 1
                 if try_cnt >= 3:
-                    print(f"❌ {url} 스캔 실패: API 쿼터 문제가 지속됩니다.")
-                    logger(f"❌ {url} 스캔 실패: API 쿼터 문제: {e}")
-                    return
+                    print(f"❌ {url} OAuth 리스트 추출 실패: API 쿼터 문제가 지속됩니다.")
+                    logger(f"❌ {url} OAuth 리스트 추출 실패: API 쿼터 문제: {e}")
+                    return []
                 continue
             # 일반 에러 처리
             try_cnt += 1
             if try_cnt >= 3:
-                print(f"❌ {url} 스캔 실패: 에러: {e}")
-                logger(f"❌ {url} 스캔 실패: 에러: {e}")
-                return
+                print(f"❌ {url} OAuth 리스트 추출 실패: 에러: {e}")
+                logger(f"❌ {url} OAuth 리스트 추출 실패: 에러: {e}")
+                return []
             print(f"⚠️ 에러 발생: {e}. {try_cnt}번째 재시도 중...")
             await asyncio.sleep(30)
             continue
 
-        # 스캔 결과 처리
-        data = json.loads(final_result)
+
+# ── 개별 OAuth 로그인 Agent ──
+async def test_oauth_login(url: str, oauth_provider: str):
+    """두 번째 Agent: 특정 OAuth 제공자로 로그인 시도"""
+    await setup_storage_state()
+    target_url = url if url.startswith("http") else f"https://{url}"
+    print(f"🔐 {oauth_provider} 로그인 시작: {target_url}")
+
+    agent = None
+    session = None
+    try_cnt = 0
+    
+    while True:
+        session = BrowserSession(
+            playwright=(await async_patchright().start()),
+            browser_profile=await browser_use.GetProfile(),
+        )
+
+        initial_actions = [{"open_tab": {"url": target_url}}]
+        controller = Controller(
+            exclude_actions=["search_google", "unknown_action", "unkown"],
+        )
+
+        print(f"🤖 {oauth_provider} 로그인 Agent 초기화...")
+        
         try:
-            oauth_entries = [model.OAuth(**entry) for entry in data["oauth_providers"]]
+            agent = Agent(
+                browser_session=session,
+                initial_actions=initial_actions,
+                sensitive_data=GetSensitiveData(),
+                task=(
+                    f"Navigate to the login page, find and click the {oauth_provider} OAuth button, "
+                    f"then follow the complete OAuth login flow as far as possible with a real user account. "
+                    f"Capture the final redirect URL after login completion. "
+                    f"If login fails or encounters errors, report the issue. "
+                    f"Focus only on {oauth_provider} - ignore other OAuth providers."
+                ),
+                llm=CreateChatGoogleGenerativeAI(GOOGLE_MODEL),
+                planner_llm=(
+                    CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL)
+                    if GOOGLE_PLANNER_MODEL
+                    else None
+                ),
+                controller=controller,
+                extend_planner_system_message=get_prompt(oauth_provider),
+            )
+            
+            response = await agent.run()
+            final_result = response.final_result()
+            
+            print(f"✅ {oauth_provider} 로그인 완료")
+            if final_result:
+                logger(f"✅ {url} - {oauth_provider} 로그인 결과: {final_result}")
+            
+            await clean_resources(agent, session)
+            return True
+            
         except Exception as e:
-            raise ValueError(f"결과 파싱 실패: {e}\n원본 결과: {final_result}")
+            await clean_resources(agent, session)
+            # API 쿼터 문제인지 확인
+            if "ResourceExhausted" in str(e) or "429" in str(e):
+                wait = min(INITIAL_BACKOFF * (2**try_cnt), MAX_BACKOFF)
+                print(f"⚠️ API 쿼터 에러: {e}. {wait}초 대기 후 재시도합니다...")
+                await asyncio.sleep(wait)
+                try_cnt += 1
+                if try_cnt >= 3:
+                    print(f"❌ {oauth_provider} 로그인 실패: API 쿼터 문제가 지속됩니다.")
+                    logger(f"❌ {url} - {oauth_provider} 로그인 실패: API 쿼터 문제: {e}")
+                    return False
+                continue
+            # 일반 에러 처리
+            try_cnt += 1
+            if try_cnt >= 3:
+                print(f"❌ {oauth_provider} 로그인 실패: 에러: {e}")
+                logger(f"❌ {url} - {oauth_provider} 로그인 실패: 에러: {e}")
+                return False
+            print(f"⚠️ 에러 발생: {e}. {try_cnt}번째 재시도 중...")
+            await asyncio.sleep(30)
+            continue
 
-        print("-" * 50)
-        print(f"🔗 Scanned URL: {url}\n")
-        print("🔐 Detected OAuth Providers and URLs:")
+
+# ── 통합 스캔 함수 ──
+async def scan_one_url(url: str, skip_html_check: bool = False):
+    """URL 스캔 통합 함수: OAuth 리스트 추출 → 개별 OAuth 로그인 시도"""
+    target_url = url if url.startswith("http") else f"https://{url}"
+    print(f"🚀 스캔 시작: {target_url}")
+
+    # Backend에 스캔 시작을 알림
+    notify_backend(target_url)
+
+    # 1단계: OAuth 리스트 추출
+    oauth_entries = await extract_oauth_list(url, skip_html_check)
+    
+    if not oauth_entries:
+        print(f"❌ {target_url}에서 OAuth 제공자를 찾을 수 없습니다.")
+        return
+
+    print("-" * 50)
+    print(f"🔗 스캔 URL: {url}")
+    print(f"🔐 발견된 OAuth 제공자들: {len(oauth_entries)}개")
+    for entry in oauth_entries:
+        print(f"  - {entry.provider}")
+    print("-" * 50)
+
+    # CSV에 OAuth 리스트 저장
+    csv_file = "./data/oauth_providers.csv"
+    file_exists = os.path.isfile(csv_file)
+    with open(csv_file, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["issuer", "provider", "oauth_uri", "login_tested"])
         for entry in oauth_entries:
-            if "<" in entry.oauth_uri or "..." in entry.oauth_uri:
-                print(
-                    f"⚠️ WARNING: {entry.provider} URL may be masked or incomplete:\n{entry.oauth_uri}\n"
-                )
-            else:
-                print(f"- {entry.provider}: {entry.oauth_uri}")
-        print("-" * 50)
+            writer.writerow([url, entry.provider, entry.oauth_uri, "pending"])
 
-        # CSV에 저장 (append)
-        csv_file = "./data/oauth_providers.csv"
-        file_exists = os.path.isfile(csv_file)
-        with open(csv_file, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            if not file_exists:
-                writer.writerow(["issuer", "provider", "oauth_uri"])
-            for entry in oauth_entries:
-                writer.writerow([url, entry.provider, entry.oauth_uri])
-        await clean_resources(agent, session)
-        break
-
-
+    # 2단계: 각 OAuth 제공자별로 개별 로그인 시도
+    for i, oauth_entry in enumerate(oauth_entries):
+        print(f"\n🔄 OAuth 로그인 테스트 {i+1}/{len(oauth_entries)}: {oauth_entry.provider}")
+        
+        # OAuth 간 대기 시간
+        if i > 0:
+            print("⏳ OAuth 테스트 간 대기 중 (30초)...")
+            await asyncio.sleep(30)
+        
+        # 개별 OAuth 로그인 시도
+        success = await test_oauth_login(url, oauth_entry.provider)
+        
+        # 결과를 CSV에 업데이트 (간단하게 로그만 남김)
+        status = "success" if success else "failed"
+        print(f"📝 {oauth_entry.provider} 로그인 결과: {status}")
 async def loop(
     filepath: str, start_line: int, end_line: int, skip_html_check: bool = False
 ):

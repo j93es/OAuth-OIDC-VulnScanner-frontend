@@ -96,8 +96,8 @@ curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o domains.txt
 ```
 
 ```sh
-# uv run run.py {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
-uv run run.py 12540 13000 False
+# uv run run.py {domains.txt 시작 줄} {domains.txt 끝 줄} {--skh}
+uv run run.py 1 100 --skh
 ```
 
 # 참고하면 좋을만한 것
