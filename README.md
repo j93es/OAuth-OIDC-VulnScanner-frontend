@@ -20,7 +20,19 @@
 > 다른 플렛폼은 수동으로 설정되어야만 합니다.
 > https://docs.mitmproxy.org/stable/concepts/certificates/
 
+
 ---
+다음과 같은 명령어로 환경을 설정합니다.
+
+설명하는 가이드를 잘 따라가면 설정할 수 있습니다.
+
+```sh
+uv run setup.py
+```
+
+
+<details>
+<summary>설치 및 설정 (레거시)</summary>
 
 uv 설치 후 다음과 같은 명령어를 입력합니다.
 
@@ -41,20 +53,13 @@ venv와 패키지가 설치가 됩니다.
 playwright install chrome
 ```
 
----
-다음과 같은 명령어로 실행합니다.
-
-```sh
-uv run main.py
-```
-
 Environment는 .env.example에 따라 설정되어야합니다.
 
 .env.example을 .env로 복사하여서 사용해주세요.
 
-# 로그인 방안
+## 로그인 방안
 
-## 쿠키와 로컬 스토리지 설정 방법 (추천)
+### 쿠키와 로컬 스토리지 설정 방법 (추천)
 
 ![1](./docs/image.png)
 
@@ -64,7 +69,7 @@ uv run playwright open https://google.com/ --save-storage=./data/storage_state.j
 
 위 명령어를 실행하면 playwright Browser가 하나 열리는데 여기서 원하는 프로바이더를 모두 로그인 한 후에 브라우저를 정상적으로 닫으면 ./data/storage_state.json 경로에 쿠키, 로컬스토리지를 저장한 파일이 생성됩니다.
 
-## Browser Use에게 직접 로그인 요청 (선택)
+### Browser Use에게 직접 로그인 요청 (선택)
 <details>
 위에 쿠키와 로컬스토리지 설정 방법과 혼용해서 사용가능합니다.
 
@@ -77,6 +82,10 @@ uv run playwright open https://google.com/ --save-storage=./data/storage_state.j
 [Sensitive Data - Browser Use](https://docs.browser-use.com/customize/sensitive-data)에서도 권장하지 않는 방법인만큼 애매하긴 하지만 쿠키와 로컬 스토리지를 저장하기 어려운 경우나 일부 flow에서 접근이 어려운 경우 사용해주세요.
 </details>
 
+</details>
+
+---
+
 
 # 실행
 
@@ -87,14 +96,8 @@ curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o domains.txt
 ```
 
 ```sh
-# ./run.sh {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
-./run.sh 12540 13000 False
-```
-
-
-```pwsh
-# ./run.ps1 {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
-./run.ps1 12540 13000 False
+# uv run run.py {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
+uv run run.py 12540 13000 False
 ```
 
 # 참고하면 좋을만한 것

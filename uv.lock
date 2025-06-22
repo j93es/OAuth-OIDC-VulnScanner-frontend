@@ -96,14 +96,13 @@ wheels = [
 
 [[package]]
 name = "browser-use"
-version = "0.3.1"
+version = "0.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
     { name = "anyio" },
     { name = "authlib" },
     { name = "bubus" },
-    { name = "faiss-cpu" },
     { name = "google-api-core" },
     { name = "httpx" },
     { name = "langchain" },
@@ -128,13 +127,14 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "uuid7" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/8f/d12c90ed85f2f6b4248e9183227ca389451a3319bbbd9df6b9b36be69c11/browser_use-0.3.1.tar.gz", hash = "sha256:862cfef984c9af84b3ba4ac13cd23e232bea1f8ec7e83d5afa3e58c8491fb66b", size = 163670, upload-time = "2025-06-20T09:44:58.448Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4a/9b/b0620dea406c878923b38dab4c9391d822a854a7053ec3ba2c831a8f8da1/browser_use-0.3.2.tar.gz", hash = "sha256:600881d087ef246d10505aa133cc18f7ac2f3f8ddcb6210c00a8cabf0a4b9aa1", size = 175299, upload-time = "2025-06-22T05:26:20.979Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/73/81dc17b281858498373662e5034dce316f8ed90b9d9025f7659f49e2d2b7/browser_use-0.3.1-py3-none-any.whl", hash = "sha256:773ace737c93d54ff2d95d734c5bd746e03c10e38d916a89a90effa6d101ec9b", size = 182885, upload-time = "2025-06-20T09:44:57.226Z" },
+    { url = "https://files.pythonhosted.org/packages/93/04/0446df95b031362fbbbd20e4b389d4dee98f27d2c40ed38d792842bcc807/browser_use-0.3.2-py3-none-any.whl", hash = "sha256:500340bd3d41440072d9845c640b0cb5decfacc423459ab7a28ce9273b1b1601", size = 195490, upload-time = "2025-06-22T05:26:19.545Z" },
 ]
 
 [package.optional-dependencies]
 memory = [
+    { name = "faiss-cpu" },
     { name = "sentence-transformers" },
 ]
 
@@ -150,14 +150,14 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "browser-use", extras = ["memory"], specifier = ">=0.2.7" },
+    { name = "browser-use", extras = ["memory"], specifier = "==0.3.2" },
     { name = "lmnr", extras = ["all"], specifier = ">=0.6.10" },
     { name = "patchright", specifier = ">=1.52.5" },
 ]
 
 [[package]]
 name = "bubus"
-version = "1.1.0"
+version = "1.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -166,9 +166,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "uuid7" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d2/51/8c953bceebc20314fffa71cbd010601d766ce0e99bcc8133ac5c78085add/bubus-1.1.0.tar.gz", hash = "sha256:4a5125e4bd3868947023ada5d33a6fbeb29ceeb0448999ca50f5dfe4e349a267", size = 19756, upload-time = "2025-06-20T08:51:13.165Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/d2/1177c30fc3710806b0c57605409511cd6230d21c9c6ed3c8189ee8f579ac/bubus-1.1.2.tar.gz", hash = "sha256:95a90e9b82e397c506ae12558ea538161b04b2b9cee9ce3f585f41177927c373", size = 21001, upload-time = "2025-06-21T09:09:38.616Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/7c/bc1eeae426c65b32b3129f31b01a8dc526388e310babebbd1b5b9594666a/bubus-1.1.0-py3-none-any.whl", hash = "sha256:c541fe77bf4444cce724fc49025ea7d996d37346cf708e46974142f9e4eb7577", size = 20715, upload-time = "2025-06-20T08:51:12.053Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/f9/e1edf399481a94cbec3016cb4a253df1be0b0631c232d34dca61bb37bfff/bubus-1.1.2-py3-none-any.whl", hash = "sha256:216094a28df3b7869d4e85e5c722b31ba1e44c3bf114aa11b037a76e6fba8225", size = 22083, upload-time = "2025-06-21T09:09:37.477Z" },
 ]
 
 [[package]]

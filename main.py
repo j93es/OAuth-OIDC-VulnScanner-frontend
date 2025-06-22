@@ -50,7 +50,7 @@ if os.getenv("LMNR_PROJECT_API_KEY"):
 
 def save_progress():
     """현재 진행 상황을 파일에 저장"""
-    with open(progress_file, 'w', encoding='utf-8') as f:
+    with open(progress_file, "w", encoding="utf-8") as f:
         json.dump(current_progress, f, ensure_ascii=False, indent=2)
 
 
@@ -58,7 +58,7 @@ def load_progress():
     """이전 진행 상황을 파일에서 불러오기"""
     if os.path.exists(progress_file):
         try:
-            with open(progress_file, 'r', encoding='utf-8') as f:
+            with open(progress_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except:
             return None
@@ -67,15 +67,19 @@ def load_progress():
 
 def signal_handler(signum, frame):
     """Ctrl+C 시그널 핸들러"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🛑 스캔이 중단되었습니다!")
     print(f"📊 진행 상황:")
     print(f"   - 전체: {current_progress['total']}개 URL")
     print(f"   - 완료: {current_progress['current_index']}개 URL")
     print(f"   - 현재 처리 중: {current_progress['current_url']}")
-    print(f"   - domains.txt의 {current_progress['start_line'] + current_progress['current_index']}번째 줄")
-    print(f"   - 진행률: {current_progress['current_index']}/{current_progress['total']} ({current_progress['current_index']/current_progress['total']*100:.1f}%)")
-    print("="*60)
+    print(
+        f"   - domains.txt의 {current_progress['start_line'] + current_progress['current_index']}번째 줄"
+    )
+    print(
+        f"   - 진행률: {current_progress['current_index']}/{current_progress['total']} ({current_progress['current_index']/current_progress['total']*100:.1f}%)"
+    )
+    print("=" * 60)
     save_progress()
     print(f"💾 진행 상황이 {progress_file}에 저장되었습니다.")
     exit(0)
@@ -111,7 +115,10 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
 
         # Agent 생성 및 실행 (단일 try-except with 백오프)
         initial_actions = [{"open_tab": {"url": target_url}}]
-        controller = Controller(output_model=model.BaseModel, exclude_actions=['search_google'])
+        controller = Controller(
+            output_model=model.BaseModel,
+            exclude_actions=["search_google", "unknown_action", "unkown"],
+        )
 
         print("🤖 LLM 모델 초기화 및 스캔 시작...")
         print("Available actions:", list(controller.registry.registry.actions.keys()))
@@ -130,13 +137,17 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
                     "Always log out before starting the login process, and make sure to attempt the login again from a clean state."
                 ),
                 llm=CreateChatGoogleGenerativeAI(GOOGLE_MODEL),
-                planner_llm=CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL),
+                planner_llm=(
+                    CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL)
+                    if GOOGLE_PLANNER_MODEL
+                    else None
+                ),
                 controller=controller,
                 extend_planner_system_message=extend_planner_system_message,
             )
             response = await agent.run()
             final_result = response.final_result()
-            
+
             if final_result is None:
                 raise ValueError("final_result()가 None을 반환했습니다.")
         except Exception as e:
@@ -206,18 +217,20 @@ async def loop(
     current_progress["total"] = len(target_list)
     current_progress["start_line"] = start_line
     current_progress["current_index"] = 0
-    
+
     # 이전 진행 상황 확인
     prev_progress = load_progress()
     if prev_progress and prev_progress.get("start_line") == start_line:
         print(f"📋 이전 진행 상황을 발견했습니다:")
-        print(f"   - 이전 완료: {prev_progress['current_index']}/{prev_progress['total']}")
+        print(
+            f"   - 이전 완료: {prev_progress['current_index']}/{prev_progress['total']}"
+        )
         print(f"   - 마지막 처리: {prev_progress.get('current_url', 'N/A')}")
-        
+
         resume = input("이어서 진행하시겠습니까? (y/n): ").lower().strip()
-        if resume == 'y':
+        if resume == "y":
             current_progress["current_index"] = prev_progress["current_index"]
-            target_list = target_list[current_progress["current_index"]:]
+            target_list = target_list[current_progress["current_index"] :]
             print(f"✅ {current_progress['current_index']}번째부터 재개합니다.")
 
     # (필요하다면) 강제 설정이 필요한 경우, 아래 주석을 해제하여 target_list[0] 등을 덮어쓸 수 있습니다.
@@ -227,7 +240,7 @@ async def loop(
         actual_index = current_progress["current_index"] + i
         current_progress["current_url"] = url
         current_progress["current_index"] = actual_index
-        
+
         print(f"\n🔄 Processing {actual_index + 1}/{current_progress['total']}: {url}")
         print(f"📍 domains.txt의 {start_line + actual_index}번째 줄")
 
@@ -237,7 +250,7 @@ async def loop(
             await asyncio.sleep(30)
 
         await scan_one_url(url, skip_html_check=skip_html_check)
-        
+
         # 진행 상황 저장
         current_progress["current_index"] = actual_index + 1
         save_progress()
