@@ -87,14 +87,8 @@ curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o domains.txt
 ```
 
 ```sh
-# ./run.sh {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
-./run.sh 12540 13000 False
-```
-
-
-```pwsh
-# ./run.ps1 {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
-./run.ps1 12540 13000 False
+# uv run run.py {domains.txt 시작 줄} {domains.txt 끝 줄} {HTML 검사 Skip}
+uv run run.py 12540 13000 False
 ```
 
 # 참고하면 좋을만한 것
