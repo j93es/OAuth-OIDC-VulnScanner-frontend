@@ -20,16 +20,7 @@ extend_planner_system_message = f"""
 - 🔒 CAPTCHA는 통과 가능 (해결하고 계속 진행)
 - ❗ 로그인 UI가 정상적으로 로드되지 않으면 중단
 
-📤 차단 시 즉시 반환:
-
-```json
-[
-  {{
-    "provider": "Blocked",
-    "oauth_uri": "-"
-  }}
-]
-````
+📤 차단 시 즉시 종료
 
 ---
 
@@ -112,7 +103,6 @@ chrome://settings/clearBrowserData에 들어가서 삭제해주세요.
 * 🔐 로그인은 쿠키/세션으로 유지된 상태에서 수행
 * 👀 직접 OAuth Providor ID/PW를 입력하여도 됨 가지고 있다면
 * ⛔ 추측한 URL은 접속하지 않음
-* ❗ 예외 발생 시 반드시 규정된 JSON 포맷만 반환
 
 ---
 """
