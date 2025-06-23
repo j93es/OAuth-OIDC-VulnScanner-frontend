@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "browser-use[memory]==0.3.2",
+    "chardet>=5.2.0",
     "lmnr[all]>=0.6.10",
     "patchright>=1.52.5",
 ]

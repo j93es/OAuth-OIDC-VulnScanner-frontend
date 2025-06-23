@@ -104,7 +104,7 @@ async def extract_oauth_list(url: str, skip_html_check: bool = False):
     agent = None
     session = None
     try_cnt = 0
-    
+
     while True:
         session = BrowserSession(
             playwright=(await async_patchright().start()),
@@ -118,7 +118,7 @@ async def extract_oauth_list(url: str, skip_html_check: bool = False):
         )
 
         print("🤖 OAuth 리스트 추출 Agent 초기화...")
-        
+
         try:
             agent = Agent(
                 browser_session=session,
@@ -139,19 +139,19 @@ async def extract_oauth_list(url: str, skip_html_check: bool = False):
                 controller=controller,
                 extend_planner_system_message=get_prompt("auth"),
             )
-            
+
             response = await agent.run()
             final_result = response.final_result()
 
             if final_result is None:
                 raise ValueError("OAuth 리스트 추출 결과가 None입니다.")
-                
+
             data = json.loads(final_result)
             oauth_entries = [model.OAuth(**entry) for entry in data["oauth_providers"]]
-            
+
             await clean_resources(agent, session)
             return oauth_entries
-            
+
         except Exception as e:
             await clean_resources(agent, session)
             # API 쿼터 문제인지 확인
@@ -161,7 +161,9 @@ async def extract_oauth_list(url: str, skip_html_check: bool = False):
                 await asyncio.sleep(wait)
                 try_cnt += 1
                 if try_cnt >= 3:
-                    print(f"❌ {url} OAuth 리스트 추출 실패: API 쿼터 문제가 지속됩니다.")
+                    print(
+                        f"❌ {url} OAuth 리스트 추출 실패: API 쿼터 문제가 지속됩니다."
+                    )
                     logger(f"❌ {url} OAuth 리스트 추출 실패: API 쿼터 문제: {e}")
                     return []
                 continue
@@ -186,7 +188,7 @@ async def test_oauth_login(url: str, oauth_provider: str):
     agent = None
     session = None
     try_cnt = 0
-    
+
     while True:
         session = BrowserSession(
             playwright=(await async_patchright().start()),
@@ -199,7 +201,7 @@ async def test_oauth_login(url: str, oauth_provider: str):
         )
 
         print(f"🤖 {oauth_provider} 로그인 Agent 초기화...")
-        
+
         try:
             agent = Agent(
                 browser_session=session,
@@ -221,17 +223,17 @@ async def test_oauth_login(url: str, oauth_provider: str):
                 controller=controller,
                 extend_planner_system_message=get_prompt(oauth_provider),
             )
-            
+
             response = await agent.run()
             final_result = response.final_result()
-            
+
             print(f"✅ {oauth_provider} 로그인 완료")
             if final_result:
                 logger(f"✅ {url} - {oauth_provider} 로그인 결과: {final_result}")
-            
+
             await clean_resources(agent, session)
             return True
-            
+
         except Exception as e:
             await clean_resources(agent, session)
             # API 쿼터 문제인지 확인
@@ -241,8 +243,12 @@ async def test_oauth_login(url: str, oauth_provider: str):
                 await asyncio.sleep(wait)
                 try_cnt += 1
                 if try_cnt >= 3:
-                    print(f"❌ {oauth_provider} 로그인 실패: API 쿼터 문제가 지속됩니다.")
-                    logger(f"❌ {url} - {oauth_provider} 로그인 실패: API 쿼터 문제: {e}")
+                    print(
+                        f"❌ {oauth_provider} 로그인 실패: API 쿼터 문제가 지속됩니다."
+                    )
+                    logger(
+                        f"❌ {url} - {oauth_provider} 로그인 실패: API 쿼터 문제: {e}"
+                    )
                     return False
                 continue
             # 일반 에러 처리
@@ -267,7 +273,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
 
     # 1단계: OAuth 리스트 추출
     oauth_entries = await extract_oauth_list(url, skip_html_check)
-    
+
     if not oauth_entries:
         print(f"❌ {target_url}에서 OAuth 제공자를 찾을 수 없습니다.")
         return
@@ -291,19 +297,23 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
 
     # 2단계: 각 OAuth 제공자별로 개별 로그인 시도
     for i, oauth_entry in enumerate(oauth_entries):
-        print(f"\n🔄 OAuth 로그인 테스트 {i+1}/{len(oauth_entries)}: {oauth_entry.provider}")
-        
+        print(
+            f"\n🔄 OAuth 로그인 테스트 {i+1}/{len(oauth_entries)}: {oauth_entry.provider}"
+        )
+
         # OAuth 간 대기 시간
         if i > 0:
             print("⏳ OAuth 테스트 간 대기 중 (30초)...")
             await asyncio.sleep(30)
-        
+
         # 개별 OAuth 로그인 시도
         success = await test_oauth_login(url, oauth_entry.provider)
-        
+
         # 결과를 CSV에 업데이트 (간단하게 로그만 남김)
         status = "success" if success else "failed"
         print(f"📝 {oauth_entry.provider} 로그인 결과: {status}")
+
+
 async def loop(
     filepath: str, start_line: int, end_line: int, skip_html_check: bool = False
 ):

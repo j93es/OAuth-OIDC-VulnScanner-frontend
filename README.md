@@ -96,7 +96,7 @@ curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o domains.txt
 ```
 
 ```sh
-# uv run run.py {domains.txt 시작 줄} {domains.txt 끝 줄} {--skh}
+# uv run run.py {domains.txt 시작 줄} {domains.txt 끝 줄} {--skh} {--no-download}
 uv run run.py 1 100 --skh
 ```
 
