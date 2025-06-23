@@ -147,7 +147,8 @@ async def extract_oauth_list(url: str, skip_html_check: bool = False):
                 raise ValueError("OAuth 리스트 추출 결과가 None입니다.")
 
             data = json.loads(final_result)
-            oauth_entries = [model.OAuth(**entry) for entry in data["oauth_providers"]]
+            oauth_providers = data["oauth_providers"]  # 이제 문자열 배열
+            oauth_entries = [model.OAuth(provider=provider) for provider in oauth_providers]
 
             await clean_resources(agent, session)
             return oauth_entries
@@ -293,7 +294,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         if not file_exists:
             writer.writerow(["issuer", "provider", "oauth_uri", "login_tested"])
         for entry in oauth_entries:
-            writer.writerow([url, entry.provider, entry.oauth_uri, "pending"])
+            writer.writerow([url, entry.provider, "", "pending"])  # oauth_uri는 빈 문자열
 
     # 2단계: 각 OAuth 제공자별로 개별 로그인 시도
     for i, oauth_entry in enumerate(oauth_entries):

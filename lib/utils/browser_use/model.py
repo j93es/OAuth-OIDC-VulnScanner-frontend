@@ -8,7 +8,7 @@ class OAuth(BaseModel):
 
 
 class OAuthList(BaseModel):
-    oauth_providers: List[OAuth]
+    oauth_providers: List[str]  # 이제 문자열 배열로 변경
 
 
 # 기존 모델 유지 (backward compatibility)
