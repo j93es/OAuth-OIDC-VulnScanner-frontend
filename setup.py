@@ -44,7 +44,8 @@ def setup_storage():
         print("======================================================")
         print("👀 원하는 OAuth Providor를 직접 모두 로그인 한 후에 브라우저를 닫으면 설정이 완료됩니다.")
         os.system('uv run playwright open https://google.com/ --save-storage=./data/storage_state.json')
-        os.startfile('./data/storage_state.json')
+        if os.path.exists('./data/storage_state.json'):
+            os.startfile('./data/storage_state.json')
         print("✅ 쿠키와 로컬 스토리지 설정 완료.")
         print("💾 ./data/storage_state.json 파일이 생성되었습니다.")
     else:

@@ -21,5 +21,5 @@ def CreateChatGoogleGenerativeAI(model: str):
         },
         callbacks=[QuotaExhaustedHandler()],
         # API 호출 간격 조정
-        temperature=0.1,
+        temperature=0.0,
     )

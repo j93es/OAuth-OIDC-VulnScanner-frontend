@@ -70,8 +70,8 @@ def main():
         print("라인 번호는 0 이상이어야 합니다.")
         sys.exit(1)
     
-    if args.start_line >= args.end_line:
-        print("시작 라인은 종료 라인보다 작아야 합니다.")
+    if args.start_line > args.end_line:
+        print("시작 라인은 종료 라인보다 크거나 같아야 합니다.")
         sys.exit(1)
     
     # 도메인 파일 다운로드
