@@ -10,7 +10,7 @@ def get_prompt(type:str) -> str:
     :param type: 'extend_planner' 또는 'oauth_login'
     :return: 해당하는 프롬프트 문자열
     """
-    if type == "auth":
+    if type.lower() == "auth":
         from lib.llm.prompt.auth_list import extract_oauth_list_prompt
         return extract_oauth_list_prompt
     else:
