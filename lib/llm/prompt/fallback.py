@@ -65,9 +65,7 @@ extend_planner_system_message = f"""
 각 SSO 버튼에 대해 다음을 수행:
 
 1. 버튼 클릭
-2. 🌐 페이지가 이동되면, **현재 주소창(URL)을 확인하여 리디렉션된 OAuth URL**을 `oauth_uri`로 저장  
-   → 예: `https://accounts.google.com/o/oauth2/auth?...`
-3. ✅ 로그인 진행:
+2. ✅ 로그인 진행:
    - 로그인 페이지에서 OAuth 인증을 완료합니다.
    - sign in with your username(email) x_username and password is x_password
    - 버튼같은게 안눌리면 새로고침을 해봐
@@ -84,17 +82,6 @@ chrome://settings/clearBrowserData에 들어가서 삭제해주세요.
 🛑 절대 아래와 같이 해석하지 말 것:
 - ❌ 버튼 클릭 후 페이지 로딩만 기다리고 돌아가기
 - ❌ URL 저장 없이 go_back() 호출
-
-📤 각 로그인 후 다음 형식으로 결과 저장:
-
-```json
-[
-  {{
-    "provider": "Google",
-    "oauth_uri": "https://example.com/auth/google?client_id=..."
-  }}
-]
-````
 
 ---
 
@@ -114,11 +101,7 @@ chrome://settings/clearBrowserData에 들어가서 삭제해주세요.
 * 유효한 SSO 버튼이 **전혀 없을 경우**
 * 예외, 오류 등 발생 시
 
-📤 즉시 중단 후 다음 형식으로 반환:
-
-```json
-[]
-```
+-> 즉시 중단
 
 ---
 
