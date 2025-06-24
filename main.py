@@ -12,24 +12,33 @@ from browser_use import (
     Agent,
     BrowserSession,
     Controller,
-    ActionResult,
 )
 from patchright.async_api import async_playwright as async_patchright, Page
 from pydantic import BaseModel
 
-from lib.utils import env_cheker
-from lib.utils.backend_client import notify_backend
-from lib.utils.browser_use import model
-from lib.utils.browser_use.clean_resources import clean_resources
-from lib.utils.browser_use.func import setup_storage_state
-from lib.utils.browser_use.sensitive_data import GetSensitiveData
-from lib.utils.config import BACKEND_URL, GOOGLE_MODEL, GOOGLE_PLANNER_MODEL
-from lib.utils.is_html import is_html_url
-from lib.utils.read_txt import read_lines_between
-from lib.llm.prompt import get_prompt
-from lib.utils.logger import logger
-import lib.utils.browser_use as browser_use
-from lib.llm import CreateChatGoogleGenerativeAI
+from lib.utils import (
+    notify_backend,
+    read_lines_between,
+    is_html_url,
+    env_cheker,
+    logger,
+    config,
+    GetProfile
+)
+
+from lib.utils import (
+    GetSensitiveData,
+    setup_storage_state,
+    clean_resources
+)
+
+from lib.llm import (
+    CreateChatGoogleGenerativeAI,
+    get_prompt
+)
+
+
+import lib.utils.browser_use.model as model
 
 load_dotenv(verbose=True, override=True)
 
@@ -108,7 +117,7 @@ async def extract_oauth_list(url: str, skip_html_check: bool = False):
     while True:
         session = BrowserSession(
             playwright=(await async_patchright().start()),
-            browser_profile=await browser_use.GetProfile(),
+            browser_profile=await GetProfile(),
         )
 
         initial_actions = [{"open_tab": {"url": target_url}}]
@@ -130,10 +139,10 @@ async def extract_oauth_list(url: str, skip_html_check: bool = False):
                     "Just find and list all available OAuth providers with their button texts or provider names. "
                     "Return a list of OAuth providers found on the login page."
                 ),
-                llm=CreateChatGoogleGenerativeAI(GOOGLE_MODEL),
+                llm=CreateChatGoogleGenerativeAI(config.GOOGLE_MODEL),
                 planner_llm=(
-                    CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL)
-                    if GOOGLE_PLANNER_MODEL
+                    CreateChatGoogleGenerativeAI(config.GOOGLE_PLANNER_MODEL)
+                    if config.GOOGLE_PLANNER_MODEL
                     else None
                 ),
                 controller=controller,
@@ -193,7 +202,7 @@ async def test_oauth_login(url: str, oauth_provider: str):
     while True:
         session = BrowserSession(
             playwright=(await async_patchright().start()),
-            browser_profile=await browser_use.GetProfile(),
+            browser_profile=await GetProfile(),
         )
 
         initial_actions = [{"open_tab": {"url": target_url}}]
@@ -215,10 +224,10 @@ async def test_oauth_login(url: str, oauth_provider: str):
                     f"If login fails or encounters errors, report the issue. "
                     f"Focus only on {oauth_provider} - ignore other OAuth providers."
                 ),
-                llm=CreateChatGoogleGenerativeAI(GOOGLE_MODEL),
+                llm=CreateChatGoogleGenerativeAI(config.GOOGLE_MODEL),
                 planner_llm=(
-                    CreateChatGoogleGenerativeAI(GOOGLE_PLANNER_MODEL)
-                    if GOOGLE_PLANNER_MODEL
+                    CreateChatGoogleGenerativeAI(config.GOOGLE_PLANNER_MODEL)
+                    if config.GOOGLE_PLANNER_MODEL
                     else None
                 ),
                 controller=controller,

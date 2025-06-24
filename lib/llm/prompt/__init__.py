@@ -1,7 +1,6 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv(override=True)
+# why this is isn't index
+# 이 파일을 __init__.py로 만든 이유는
+# 굳이 이 짧은 코드를 파일을 하나 더 만드는게 코드의 가독성을 떨어뜨린다고 판단했기 때문입니다.
 
 def get_prompt(type:str) -> str:
     """
