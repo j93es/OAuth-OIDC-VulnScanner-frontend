@@ -12,16 +12,14 @@ def get_prompt(type:str) -> str:
     if type.lower() == "auth":
         from lib.llm.prompt.auth_list import extract_oauth_list_prompt
         return extract_oauth_list_prompt
-    
+
     elif type.lower() == "google":
         from lib.llm.prompt.Google import extend_planner_system_message
         return extend_planner_system_message
     elif type.lower() == "meta" and type.lower() == "facebook":
         from lib.llm.prompt.Meta import extend_planner_system_message
         return extend_planner_system_message
-    
+
     else:
         from lib.llm.prompt.fallback import extend_planner_system_message
         return extend_planner_system_message
-    
-    
