@@ -100,6 +100,25 @@ curl "https://f.imnya.ng/.whs/tp-domains/data/domains/latest.txt" -o domains.txt
 uv run run.py 1 100 --skh
 ```
 
+# Prompt 확장 가이드
+
+## 1. 파일 생성
+
+`lib/llm/prompt` 폴더로
+
+![](./docs/list.png)
+
+fallback.py를 복사하여
+
+원하는 프로바이더를 추가해줍니다. `ex) lib/llm/prompt/Google.py`
+
+## 2. __init__.py 수정
+
+
+## 3. 파일 수정
+
+생성한 파일에서 프롬프트를 수정합니다.
+
 # 참고하면 좋을만한 것
 
 - [ ] 일부 웹사이트는 사용자의 언어에 따라 OAuth 옵션을 바꾸기도 합니다.

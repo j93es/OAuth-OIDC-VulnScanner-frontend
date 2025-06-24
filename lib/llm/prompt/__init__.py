@@ -5,13 +5,23 @@
 def get_prompt(type:str) -> str:
     """
     Prompt를 반환합니다.
-    
-    :param type: 'extend_planner' 또는 'oauth_login'
+
+    :param type: 'auth' {Auth List} 또는 'google' {OAuth Provider}, 'meta' {OAuth Provider}을 지정합니다.
     :return: 해당하는 프롬프트 문자열
     """
     if type.lower() == "auth":
         from lib.llm.prompt.auth_list import extract_oauth_list_prompt
         return extract_oauth_list_prompt
+    
+    elif type.lower() == "google":
+        from lib.llm.prompt.Google import extend_planner_system_message
+        return extend_planner_system_message
+    elif type.lower() == "meta" and type.lower() == "facebook":
+        from lib.llm.prompt.Meta import extend_planner_system_message
+        return extend_planner_system_message
+    
     else:
         from lib.llm.prompt.fallback import extend_planner_system_message
         return extend_planner_system_message
+    
+    
