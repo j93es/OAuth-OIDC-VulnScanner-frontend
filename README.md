@@ -87,6 +87,9 @@ uv run playwright open https://google.com/ --save-storage=./data/storage_state.j
 ---
 
 # 윈도우 인코딩 이슈 해결
+이거 해결 방법
+![image](https://github.com/user-attachments/assets/01ca45c2-fda9-44fb-83fc-39daa7e52092)
+
 ![](./docs/encode.png)
 이것도 setup.py 사용하면 반자동으로 할 수 있습니다.
 
