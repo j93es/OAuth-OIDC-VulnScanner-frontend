@@ -90,7 +90,7 @@ uv run playwright open https://google.com/ --save-storage=./data/storage_state.j
 ![](./docs/encode.png)
 이것도 setup.py 사용하면 반자동으로 할 수 있습니다.
 
-
+못찾겠으면 intl.cpl 열어주세요.
 
 # 실행
 
