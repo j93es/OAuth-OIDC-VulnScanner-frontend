@@ -1,5 +1,5 @@
 import os
-from lib.utils.browser_use.func import *
+from lib.browser_use.func import *
 
 # Initialize configuration
 proxy_url = setup_proxy()
