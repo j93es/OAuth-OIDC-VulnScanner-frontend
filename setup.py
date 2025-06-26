@@ -1,5 +1,6 @@
 import os
 import subprocess
+import webbrowser
 
 os.makedirs(os.path.dirname("./data"), exist_ok=True)
 
@@ -9,7 +10,7 @@ def create_file_from_example(target: str, example: str) -> bool:
             with open(example, 'r', encoding='utf-8') as example_file, \
                     open(target, 'w', encoding='utf-8') as target_file:
                 target_file.write(example_file.read())
-                os.startfile(target)
+                #os.startfile(target)
             print(f"✅ {target} 파일이 {example}에서 생성되었습니다.")
             return True
         else:
@@ -36,6 +37,45 @@ def prompt_yes_no(message: str) -> bool:
     print(message, end="")
     return input().strip().lower() in ['y', 'yes']
 
+def i_dont_like_windows():
+    # Windows인지 확인
+    if os.name != 'nt':
+        return
+    else:
+        # run (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage").ACP
+        try:
+            result = subprocess.run(
+                ['powershell', '-Command', '(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage").ACP'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            acp = result.stdout.strip()
+            if acp == '65001':
+                print("현재 Active Code Page가 UTF-8로 설정되어 있습니다.")
+                return
+            else:
+                print("현재 Active Code Page가 UTF-8로 설정되어 있지 않습니다.")
+        except subprocess.CalledProcessError as e:
+            print(f"코드 페이지 확인 실패: {e}")
+        print("=======================================================")
+        print("\n⚠️ Windows에서는 인코딩 문제가 발생합니다.")
+        print("👉 엔터를 누르면 자동으로 intl.cpl이 열립니다.")
+        print("👉 자세한 내용은 README.md에서 \"윈도우 인코딩 해결\"을 참조해주세요.\n")
+        print("⚠️ 경고 : 이 작업은 윈도우에서 킹갓 대한민국의 프로그램들의 한글이 정상적으로 표시되지 않을 수 있습니다.")
+        # Pause
+        input("계속하려면 Enter 키를 누르세요...")
+
+        webbrowser.open('intl.cpl')
+
+        print("👉 intl.cpl가 열렸습니다.\n")
+        print("👉 관리자 옵션 -> 시스템 로켈 변경")
+        print("👀 Beta: 세계 언어 지원을 위해 Unicode UTF-8 사용")
+        print("👉 이 설정을 변경한 후, 시스템을 재시작하세요.\n")
+        print("⚠️ 이 작업은 시스템 언어 설정을 변경하므로 주의가 필요합니다.\n")
+        print("=======================================================")
+        input("계속하려면 Enter 키를 누르세요...")
+        
 
 def setup_storage():
     print("\n🔧 쿠키와 로컬 스토리지를 설정하시겠습니까?")
@@ -78,11 +118,15 @@ if __name__ == "__main__":
     install_playwright_chrome()
     print("=====================================================")
 
-    # 3. 쿠키와 로컬 스토리지 설정
+    # 3. Windows 인코딩 문제 해결
+    i_dont_like_windows()
+    print("=====================================================")
+
+    # 4. 쿠키와 로컬 스토리지 설정
     setup_storage()
     print("=====================================================")
 
-    # 4. .sensitive.json 생성
+    # 5. .sensitive.json 생성
     setup_sensitive()
     print("=====================================================")
     print("🎉 초기 설정이 완료되었습니다! 이제 스크립트를 실행할 준비가 되었습니다.")

@@ -1,8 +1,3 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv(override=True)
-
 # Extended planner prompt
 extend_planner_system_message = f"""
 🎯 목적: 웹 자동화를 위한 **SSO 로그인 리디렉션 URL 수집**
@@ -25,16 +20,7 @@ extend_planner_system_message = f"""
 - 🔒 CAPTCHA는 통과 가능 (해결하고 계속 진행)
 - ❗ 로그인 UI가 정상적으로 로드되지 않으면 중단
 
-📤 차단 시 즉시 반환:
-
-```json
-[
-  {{
-    "provider": "Blocked",
-    "oauth_uri": "-"
-  }}
-]
-````
+📤 차단 시 즉시 종료
 
 ---
 
@@ -70,16 +56,14 @@ extend_planner_system_message = f"""
 각 SSO 버튼에 대해 다음을 수행:
 
 1. 버튼 클릭
-2. 🌐 페이지가 이동되면, **현재 주소창(URL)을 확인하여 리디렉션된 OAuth URL**을 `oauth_uri`로 저장  
-   → 예: `https://accounts.google.com/o/oauth2/auth?...`
-3. ✅ 로그인 진행:
+2. ✅ 로그인 진행:
    - 로그인 페이지에서 OAuth 인증을 완료합니다.
    - sign in with your username(email) x_username and password is x_password
    - 버튼같은게 안눌리면 새로고침을 해봐
    - **로그인 완료 후 authorize 등 버튼이 있으면 클릭**
    - GitHub같은 경우 Authorize 버튼이 뜨는데 오래걸릴 수 있음, 기다려야 할 수도 있음
    - 만약 버튼을 눌러도 반응이 없을 경우 새로고침을 한번 해주세요.
-   - 로그인 실패 시에는 다음 SSO 버튼을 클릭합니다.
+   - **OAuth Flow가 완료되면 (callback URL 도달 또는 인증 완료) 즉시 작업 종료**
 4. 로그인이 성공하면 모두 쿠키를 삭제하고 다음 SSO 버튼을 클릭합니다.
 5. 다음 SSO 버튼으로 반복 진행
 
@@ -89,19 +73,6 @@ chrome://settings/clearBrowserData에 들어가서 삭제해주세요.
 🛑 절대 아래와 같이 해석하지 말 것:
 - ❌ 버튼 클릭 후 페이지 로딩만 기다리고 돌아가기
 - ❌ URL 저장 없이 go_back() 호출
-
-📤 각 로그인 후 다음 형식으로 결과 저장:
-
-```json
-[
-  {{
-    "provider": "Google",
-    "oauth_uri": "https://example.com/auth/google?client_id=..."
-  }}
-]
-````
-
-````
 
 ---
 
@@ -121,11 +92,7 @@ chrome://settings/clearBrowserData에 들어가서 삭제해주세요.
 * 유효한 SSO 버튼이 **전혀 없을 경우**
 * 예외, 오류 등 발생 시
 
-📤 즉시 중단 후 다음 형식으로 반환:
-
-```json
-[]
-```
+-> 즉시 중단
 
 ---
 
@@ -134,9 +101,8 @@ chrome://settings/clearBrowserData에 들어가서 삭제해주세요.
 * ✅ **모든 SSO 로그인은 반드시 실행** (가능한 버튼은 모두 클릭)
 * 🔁 단계는 반드시 순서대로 진행
 * 🔐 로그인은 쿠키/세션으로 유지된 상태에서 수행
-* 🚫 직접 ID/PW 입력하지 않음
-* ⛔ 추측 URL 클릭 금지
-* ❗ 예외 발생 시 반드시 규정된 JSON 포맷만 반환
+* 👀 직접 OAuth Providor ID/PW를 입력하여도 됨 가지고 있다면
+* ⛔ 추측한 URL은 접속하지 않음
 
 ---
 """

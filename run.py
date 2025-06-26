@@ -8,7 +8,7 @@ import argparse
 #!/usr/bin/env python3
 
 # ── 설정 부분 ──
-PYTHON_SCRIPT = "main.py"
+PYTHON_SCRIPT = "./src/main.py"
 DOMAIN_FILE = "./data/domains.txt"
 # ─────────────
 
@@ -35,13 +35,16 @@ def run_script(start_line, end_line, skh_option):
     print(f"[{current_time}] Processing lines {start_line} to {end_line}...")
 
     try:
-        subprocess.run([
+        command = [
             "uv", "run", PYTHON_SCRIPT,
             "-f", DOMAIN_FILE,
             "-s", str(start_line),
             "-e", str(end_line),
-            "-skh", str(skh_option)
-        ], check=True)
+        ]
+        if skh_option:
+            command.append("--skip-html-check")
+
+        subprocess.run(command, check=True)
     except subprocess.CalledProcessError:
         print("Python 스크립트 실행 실패")
         sys.exit(1)
@@ -52,9 +55,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 사용 예시:
-  python run.py 10000 11000           # 10000~11000 라인 처리
-  python run.py 10000 11000 --skh     # SKH 옵션 활성화
-  python run.py 10000 11000 --no-download  # 다운로드 생략
+  uv run run.py 10000 11000           # 10000~11000 라인 처리
+  uv run run.py 10000 11000 --skh     # SKH 옵션 활성화
+  uv run run.py 10000 11000 --no-download  # 다운로드 생략
         """
     )
     
@@ -70,8 +73,8 @@ def main():
         print("라인 번호는 0 이상이어야 합니다.")
         sys.exit(1)
     
-    if args.start_line >= args.end_line:
-        print("시작 라인은 종료 라인보다 작아야 합니다.")
+    if args.start_line > args.end_line:
+        print("시작 라인은 종료 라인보다 크거나 같아야 합니다.")
         sys.exit(1)
     
     # 도메인 파일 다운로드
