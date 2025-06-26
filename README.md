@@ -20,6 +20,10 @@
 > 다른 플렛폼은 수동으로 설정되어야만 합니다.
 > https://docs.mitmproxy.org/stable/concepts/certificates/
 
+현재 아래와 같은 환경에서 개발되며 테스트되고 있습니다.
+- ✅ MacOS 26 Tahoe Developer Beta 2 (25A5295e) en-US aarch64
+- ✅ Windows 11 Pro for Workstations 24H2 (26100.4351) en-US x86_64
+- ✅ NixOS 25.05.804570.c7ab75210cb8 KDE 6 / Linux 6.15 x86_64
 
 ---
 다음과 같은 명령어로 환경을 설정합니다.
