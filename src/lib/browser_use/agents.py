@@ -15,7 +15,6 @@ from lib.utils import (
     config,
 )
 from lib.llm import CreateChatGoogleGenerativeAI, get_prompt
-import lib.browser_use.model as model
 
 # Exponential backoff settings
 INITIAL_BACKOFF = int(os.getenv("INITIAL_BACKOFF", "60"))  # seconds
@@ -77,6 +76,7 @@ async def extract_oauth_list(url: str):
     """첫 번째 Agent: 로그인 페이지를 찾고 OAuth 리스트만 추출"""
     target_url = url if url.startswith("http") else f"https://{url}"
     print(f"🔎 OAuth 리스트 추출 시작: {target_url}")
+    prompt, model = get_prompt("auth")
 
     agent_config = {
         "url": target_url,
@@ -97,10 +97,10 @@ async def extract_oauth_list(url: str):
                 else None
             ),
             "controller": Controller(
-                output_model=model.OAuthList,
+                output_model=model if not isinstance(model, str) else None,
                 exclude_actions=["search_google", "unknown_action", "unkown"],
             ),
-            "extend_planner_system_message": get_prompt("auth"),
+            "extend_planner_system_message": prompt,
         }
     }
 
@@ -117,7 +117,12 @@ async def extract_oauth_list(url: str):
     try:
         data = json.loads(final_result)
         oauth_providers = data.get("oauth_providers", [])
-        return [model.OAuth(provider=provider) for provider in oauth_providers]
+        if not oauth_providers:
+            print("❌ OAuth 제공자가 없습니다.")
+            logger(f"❌ {url} - OAuth 제공자 없음: {final_result}")
+            return []
+        print(f"✅ OAuth 제공자 추출 완료: {oauth_providers}")
+        return oauth_providers
     except (json.JSONDecodeError, KeyError) as e:
         print(f"❌ 결과 파싱 실패: {e}")
         logger(f"❌ {url} 결과 파싱 실패: {final_result}")
@@ -128,6 +133,8 @@ async def test_oauth_login(url: str, oauth_provider: str):
     """두 번째 Agent: 특정 OAuth 제공자로 로그인 시도"""
     target_url = url if url.startswith("http") else f"https://{url}"
     print(f"🔐 {oauth_provider} 로그인 시작: {target_url}")
+
+    prompt, model = get_prompt(oauth_provider)
 
     agent_config = {
         "url": target_url,
@@ -149,9 +156,10 @@ async def test_oauth_login(url: str, oauth_provider: str):
                 else None
             ),
             "controller": Controller(
+                output_model=model if not isinstance(model, str) else None,
                 exclude_actions=["search_google", "unknown_action", "unkown"],
             ),
-            "extend_planner_system_message": get_prompt(oauth_provider),
+            "extend_planner_system_message": prompt,
         }
     }
 

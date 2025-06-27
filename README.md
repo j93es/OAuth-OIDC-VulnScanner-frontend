@@ -116,23 +116,30 @@ uv run run.py 1 100 --skh
 
 ## 1. 파일 생성
 
-`lib/llm/prompt` 폴더로
+`lib/llm/prompt` 폴더에서 fallback 폴더를 복사하여
 
-![](./docs/list.png)
+원하는 프로바이더를 추가해줍니다. `ex) lib/llm/prompt/Google/`
 
-fallback.py를 복사하여
+## 2. prompt.py 수정
 
-원하는 프로바이더를 추가해줍니다. `ex) lib/llm/prompt/Google.py`
+Prompt에서 추가한 파일을 prompt.py에서 수정합니다.
 
-## 2. __init__.py 수정
+만약 로그인 정보를 넣고 싶다면 Sensitive
+`Log into example.com as user x_username with password x_password`
 
-![](./docs/guide.png)
+## 3. model.py
 
-Prompt에서 추가한 파일을 __init__.py에서 import합니다.
+응답할 때 원하는 리턴 값을 `dict`로 받습니다.
 
-## 3. 파일 수정
+## 4. \_\_init\_\_.py 수정
+![alt text](./docs/guide_0.png)
 
-생성한 파일에서 프롬프트를 수정합니다.
+추가한 prompt에 따라 import합니다.
+
+## 5. 사용 방법
+```py
+from lib.llm.prompt.fallback import prompt, model
+```
 
 # 참고하면 좋을만한 것
 
