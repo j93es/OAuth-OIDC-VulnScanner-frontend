@@ -12,6 +12,10 @@ def get_prompt(type:str) -> str:
     if type.lower() == "auth":
         from lib.llm.prompt.auth_list import extract_oauth_list_prompt
         return extract_oauth_list_prompt
+    
+    elif  type.lower() == "microsoft" and type.lower() == "microsoftonline":
+        from lib.llm.prompt.Microsoft import extend_planner_system_message
+        return extend_planner_system_message
 
     else:
         from lib.llm.prompt.fallback import extend_planner_system_message
