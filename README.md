@@ -20,6 +20,10 @@
 > 다른 플렛폼은 수동으로 설정되어야만 합니다.
 > https://docs.mitmproxy.org/stable/concepts/certificates/
 
+현재 아래와 같은 환경에서 개발되며 테스트되고 있습니다.
+- ✅ MacOS 26 Tahoe Developer Beta 2 (25A5295e) en-US aarch64
+- ✅ Windows 11 Pro for Workstations 24H2 (26100.4351) en-US x86_64
+- ✅ NixOS 25.05.804570.c7ab75210cb8 KDE 6 / Linux 6.15 x86_64
 
 ---
 다음과 같은 명령어로 환경을 설정합니다.
@@ -112,23 +116,30 @@ uv run run.py 1 100 --skh
 
 ## 1. 파일 생성
 
-`lib/llm/prompt` 폴더로
+`lib/llm/prompt` 폴더에서 fallback 폴더를 복사하여
 
-![](./docs/list.png)
+원하는 프로바이더를 추가해줍니다. `ex) lib/llm/prompt/Google/`
 
-fallback.py를 복사하여
+## 2. prompt.py 수정
 
-원하는 프로바이더를 추가해줍니다. `ex) lib/llm/prompt/Google.py`
+Prompt에서 추가한 파일을 prompt.py에서 수정합니다.
 
-## 2. __init__.py 수정
+만약 로그인 정보를 넣고 싶다면 Sensitive
+`Log into example.com as user x_username with password x_password`
 
-![](./docs/guide.png)
+## 3. model.py
 
-Prompt에서 추가한 파일을 __init__.py에서 import합니다.
+응답할 때 원하는 리턴 값을 `dict`로 받습니다.
 
-## 3. 파일 수정
+## 4. \_\_init\_\_.py 수정
+![alt text](./docs/guide_0.png)
 
-생성한 파일에서 프롬프트를 수정합니다.
+추가한 prompt에 따라 import합니다.
+
+## 5. 사용 방법
+```py
+from lib.llm.prompt.fallback import prompt, model
+```
 
 # 참고하면 좋을만한 것
 

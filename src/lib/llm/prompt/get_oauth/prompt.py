@@ -1,6 +1,4 @@
-# @file purpose: This file contains the prompt for extracting a list of OAuth providers from a web page.
-# OAuth 리스트 추출용 프롬프트 (클릭하지 않고 단순 식별만)
-extract_oauth_list_prompt = f"""
+prompt = """
 🎯 목적: 주어진 초기 URL 내에서 **OAuth 로그인 Provider**를 찾아 아래 형식의 JSON으로 정리합니다.
 
 📌 작업 목표:
@@ -36,6 +34,4 @@ extract_oauth_list_prompt = f"""
 📌 주의:
     결과가 없는 경우 빈 배열 `[]`로 반환합니다.
     정확한 provider 이름을 포함해 주세요.
-
 """
-

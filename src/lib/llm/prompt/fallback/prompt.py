@@ -1,5 +1,5 @@
 # Extended planner prompt
-extend_planner_system_message = f"""
+prompt = f"""
 🎯 목적: 웹 자동화를 위한 **SSO 로그인 리디렉션 URL 수집**
 
 📌 주의사항 (전제 조건)
@@ -93,6 +93,20 @@ chrome://settings/clearBrowserData에 들어가서 삭제해주세요.
 * 예외, 오류 등 발생 시
 
 -> 즉시 중단
+
+---
+
+
+최종 반환:
+Return the result in the following format only:
+
+```json
+{{
+    "msg": "Google login completed",
+    "status": "success" | "already_logged_in" | "mfa_required" | "captcha_triggered" | "window_blocked" | "idpw_required" | "google_blocked" | "sso_not_found" | "login_page_not_found",
+    "final_url": "<url_after_login_redirect or empty string>"
+}}
+```
 
 ---
 
