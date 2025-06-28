@@ -116,7 +116,8 @@ async def extract_oauth_list(url: str):
 
     try:
         data = json.loads(final_result)
-        oauth_providers = data.get("oauth_providers", [])
+        print(final_result)
+        oauth_providers = data.get("sso_list", [])
         if not oauth_providers:
             print("❌ OAuth 제공자가 없습니다.")
             logger(f"❌ {url} - OAuth 제공자 없음: {final_result}")
