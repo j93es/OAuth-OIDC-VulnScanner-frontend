@@ -14,7 +14,7 @@ from lib.utils import (
     logger,
     config,
 )
-from lib.llm import CreateChatGoogleGenerativeAI, get_prompt
+from lib.llm import CreateChatGoogle, get_prompt
 
 # Exponential backoff settings
 INITIAL_BACKOFF = int(os.getenv("INITIAL_BACKOFF", "60"))  # seconds
@@ -90,9 +90,9 @@ async def extract_oauth_list(url: str):
                 "Just find and list all available OAuth providers with their button texts or provider names. "
                 "Return a list of OAuth providers found on the login page."
             ),
-            "llm": CreateChatGoogleGenerativeAI(config.GOOGLE_MODEL),
+            "llm": CreateChatGoogle(config.GOOGLE_MODEL),
             "planner_llm": (
-                CreateChatGoogleGenerativeAI(config.GOOGLE_PLANNER_MODEL)
+                CreateChatGoogle(config.GOOGLE_PLANNER_MODEL)
                 if config.GOOGLE_PLANNER_MODEL
                 else None
             ),
@@ -150,9 +150,9 @@ async def test_oauth_login(url: str, oauth_provider: str):
                 f"If login fails or encounters errors, report the issue. "
                 f"Focus only on {oauth_provider} - ignore other OAuth providers."
             ),
-            "llm": CreateChatGoogleGenerativeAI(config.GOOGLE_MODEL),
+            "llm": CreateChatGoogle(config.GOOGLE_MODEL),
             "planner_llm": (
-                CreateChatGoogleGenerativeAI(config.GOOGLE_PLANNER_MODEL)
+                CreateChatGoogle(config.GOOGLE_PLANNER_MODEL)
                 if config.GOOGLE_PLANNER_MODEL and os.getenv("ENABLE_PLANNER_MODEL_OAUTH_LOGIN")
                 else None
             ),

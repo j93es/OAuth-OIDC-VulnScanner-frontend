@@ -31,7 +31,6 @@ Your task is to navigate to the login page of the given URL. Follow the steps be
   - Username/password fields
   - Email-based login
   - Non-OAuth methods such as certificate or phone verification
-- ✅ If you are unsure whether a button is OAuth-based or not, you MUST click the button and check the redirect behavior yourself.
 
 3. RETURN FORMAT
 - If the login page is successfully found, return:
@@ -59,5 +58,4 @@ Your task is to navigate to the login page of the given URL. Follow the steps be
     }
     ```
 - Return ONLY the JSON object. Do NOT include any explanation, logging, or extra output.
-
 """
