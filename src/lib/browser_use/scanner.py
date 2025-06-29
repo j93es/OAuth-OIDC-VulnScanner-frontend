@@ -30,7 +30,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
     print(f"🔗 스캔 URL: {url}")
     print(f"🔐 발견된 OAuth 제공자들: {len(oauth_entries)}개")
     for entry in oauth_entries:
-        print(f"  - {entry.provider}")
+        print(f"  - {entry}")
     print("-" * 50)
 
     # CSV에 OAuth 리스트 저장
@@ -41,12 +41,12 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
         if not file_exists:
             writer.writerow(["issuer", "provider", "oauth_uri", "login_tested"])
         for entry in oauth_entries:
-            writer.writerow([url, entry.provider, "", "pending"])
+            writer.writerow([url, entry, "", "pending"])
 
     # 2단계: 각 OAuth 제공자별로 개별 로그인 시도
     for i, oauth_entry in enumerate(oauth_entries):
         print(
-            f"\n🔄 OAuth 로그인 테스트 {i+1}/{len(oauth_entries)}: {oauth_entry.provider}"
+            f"\n🔄 OAuth 로그인 테스트 {i+1}/{len(oauth_entries)}: {oauth_entry}"
         )
 
         # OAuth 간 대기 시간
@@ -55,11 +55,11 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
             await asyncio.sleep(30)
 
         # 개별 OAuth 로그인 시도
-        success = await test_oauth_login(url, oauth_entry.provider)
+        success = await test_oauth_login(url, oauth_entry)
 
         # 결과를 CSV에 업데이트 (간단하게 로그만 남김)
         status = "success" if success else "failed"
-        print(f"📝 {oauth_entry.provider} 로그인 결과: {status}")
+        print(f"📝 {oauth_entry} 로그인 결과: {status}")
 
 
 async def main_loop(
