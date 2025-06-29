@@ -23,7 +23,8 @@ Instructions:
 5. Check if the user is **already logged in to Apple and immediately redirected back to the original site** without showing a Apple login screen.
     - ✅ If so, treat the login as successful and return immediately.
 6. If redirected to the Apple login page:
-    - If a **CAPTCHA**, **MFA prompt**, or a request for **ID/password entry** appears, do NOT proceed.
+    - If a **CAPTCHA**, complete it.
+    - If a **MFA prompt**, or a request for **ID/password entry** appears, do NOT proceed.
     - Immediately stop and return the appropriate status.
 7. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
 
