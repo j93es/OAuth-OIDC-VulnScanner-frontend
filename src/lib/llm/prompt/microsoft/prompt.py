@@ -14,9 +14,9 @@ prompt = f"""
 2. 사이트의 UI를 탐색하여 **로그인 또는 로그인 페이지**(예: "로그인", "Sign In", "Get Started"와 같은 버튼)를 찾으세요.
     - 동일한 도메인 내의 링크만 따라가세요.
 3. 로그인 페이지에서 명확하게 표시된 **Microsoft SSO 버튼**을 찾으세요. 일반적으로 다음과 같이 표시됩니다:
-    - "Microsoft로 계속"
-    - "Microsoft로 로그인"
-    - 또는 Microsoft 'M' 아이콘이 있는 버튼
+    - "Continue with Microsoft"
+    - "Sign in with Microsoft"
+    - or a button with the Microsoft logo (usually four squares)
 4. **Microsoft 로그인 버튼**을 클릭하세요.
     - ⚠️ Microsoft 로그인 플로우는 반드시 **새 브라우저 탭**에서 열려야 합니다 (새 창이나 팝업이 아님).
     - ❌ 로그인이 새 **창**이나 **팝업**에서 열리면, 즉시 중단하고 적절한 상태를 반환하세요.
