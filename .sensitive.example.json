@@ -1,0 +1,38 @@
+{
+    "google.com": {
+        "x_username": "whs.imnya.ng@gmail.com",
+        "x_password": "Vb1Mz9pgjY8JVs"
+    },
+    "accounts.google.com": {
+        "x_username": "whs.imnya.ng@gmail.com",
+        "x_password": "Vb1Mz9pgjY8JVs"
+    },
+    "naver.com": {
+        "x_username": "oauth-j93es",
+        "x_password": "whs31234"
+    },
+    "nid.naver.com": {
+        "x_username": "oauth-j93es",
+        "x_password": "whs31234"
+    },
+    "github.com": {
+        "x_username": "imnyang-bot",
+        "x_password": "6PuVXCH9tpQLNm"
+    },
+    "apple.com": {
+        "x_username": "",
+        "x_password": ""
+    },
+    "appleid.apple.com": {
+        "x_username": "",
+        "x_password": ""
+    },
+    "microsoft.com" :{
+        "x_username": "whs.imnya.ng@gmail.com",
+        "x_password": "WHS123987"
+    },
+    "login.microsoftonline.com" : {
+        "x_username": "whs.imnya.ng@gmail.com",
+        "x_password": "WHS123987"
+    }
+}
