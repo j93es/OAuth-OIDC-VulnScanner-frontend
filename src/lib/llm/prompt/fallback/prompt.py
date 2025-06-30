@@ -103,7 +103,7 @@ Return the result in the following format only:
 ```json
 {{
     "msg": "Google login completed",
-    "status": "success" | "already_logged_in" | "mfa_required" | "captcha_triggered" | "window_blocked" | "idpw_required" | "google_blocked" | "sso_not_found" | "login_page_not_found",
+    "status": "success" | "already_logged_in" | "mfa_required" | "window_blocked" | "idpw_required" | "blocked" | "sso_not_found" | "login_page_not_found",
     "final_url": "<url_after_login_redirect or empty string>"
 }}
 ```
