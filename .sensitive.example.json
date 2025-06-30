@@ -26,6 +26,13 @@
     "appleid.apple.com": {
         "x_username": "",
         "x_password": ""
+    },
+    "microsoft.com" :{
+        "x_username": "whs.imnya.ng@gmail.com",
+        "x_password": "WHS123987"
+    },
+    "login.microsoftonline.com" : {
+        "x_username": "whs.imnya.ng@gmail.com",
+        "x_password": "WHS123987"
     }
-
 }
