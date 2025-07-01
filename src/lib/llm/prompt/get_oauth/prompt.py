@@ -24,7 +24,7 @@ Your task is to navigate to the login page of the given URL. Follow the steps be
 
 2. SSO BUTTON IDENTIFICATION
 - On the login page, look for the following social login (SSO) buttons:
-  - Google, GitHub, Facebook, LinkedIn, Microsoft, Naver, Slack, Etc.
+  - Google, GitHub, Facebook, Microsoft, Naver, Etc.
 - ✅ Proceed only if it is clearly an **actual SSO button**.
 - ❌ Exclude the following:
   - Passkey-related buttons

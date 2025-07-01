@@ -12,13 +12,13 @@ def get_prompt(type: str) -> tuple[str, Type[BaseModel]] | str:
         from lib.llm.prompt.get_oauth import prompt, model
         return prompt, model
     
-    elif type.lower() in ["google", "google account"]:
-        from lib.llm.prompt.google import prompt, model
-        return prompt, model
+    # elif type.lower() in ["google", "google account"]:
+    #     from lib.llm.prompt.google import prompt, model
+    #     return prompt, model
     
-    elif type.lower() in ["microsoft", "microsoftonline"]:
-        from lib.llm.prompt.microsoft import prompt, model
-        return prompt, model
+    # elif type.lower() in ["microsoft", "microsoftonline"]:
+    #     from lib.llm.prompt.microsoft import prompt, model
+    #     return prompt, model
 
     else:
         from lib.llm.prompt.fallback import model, prompt

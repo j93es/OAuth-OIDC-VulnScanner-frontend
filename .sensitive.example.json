@@ -34,5 +34,9 @@
     "login.microsoftonline.com" : {
         "x_username": "whs.imnya.ng@gmail.com",
         "x_password": "WHS123987"
+    },
+    "facebook.com":{
+        "x_username": "01047183675",
+        "x_password": "whs3oauth@"
     }
 }
