@@ -8,7 +8,9 @@ from typing import Any, Dict, Optional
 from browser_use import Agent, BrowserSession, Controller
 from patchright.async_api import async_playwright as async_patchright
 
-from lib.browser_use import GetProfile, GetSensitiveData, clean_resources
+from lib.browser_use.clean_resources import clean_resources
+from lib.browser_use.init_profile import GetProfile
+from lib.browser_use.sensitive_data import GetSensitiveData
 from lib.llm import CreateChatGoogle, get_prompt
 from lib.utils import config, logger
 
@@ -141,12 +143,13 @@ async def _run_agent_with_retry(agent_config):
     session = None
     try_cnt = 0
     url = agent_config["url"]
+    headless = os.getenv("HEADLESS", "False").lower() == "true"
 
     while try_cnt < 3:
         try:
             session = BrowserSession(
                 playwright=(await async_patchright().start()),
-                browser_profile=await GetProfile(),
+                browser_profile=await GetProfile(headless=headless),
             )
 
             agent = Agent(browser_session=session, **agent_config["agent_params"])
@@ -208,7 +211,7 @@ async def _extract_oauth_list_internal(url: str):
         "url": target_url,
         "log_context": "OAuth 리스트 추출",
         "agent_params": {
-            "initial_actions": [{"open_tab": {"url": target_url}}],
+            "initial_actions": [{"go_to_url": {"url": target_url, 'new_tab': False}}],
             "sensitive_data": GetSensitiveData(),
             "task": (
                 "Navigate to the login page and identify all OAuth provider buttons (excluding Passkey). "
@@ -301,7 +304,7 @@ async def _test_oauth_login_internal(url: str, oauth_provider: str):
         "url": target_url,
         "log_context": f"{oauth_provider} 로그인",
         "agent_params": {
-            "initial_actions": [{"open_tab": {"url": target_url}}],
+            "initial_actions": [{"go_to_url": {"url": target_url, 'new_tab': False}}],
             "sensitive_data": GetSensitiveData(),
             "task": (
                 f"Navigate to the login page, find and click the {oauth_provider} OAuth button, "
