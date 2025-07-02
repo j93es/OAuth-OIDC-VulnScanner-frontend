@@ -65,7 +65,7 @@ Environment는 .env.example에 따라 설정되어야합니다.
 
 ### 쿠키와 로컬 스토리지 설정 방법 (추천)
 
-![1](./docs/image.png)
+![image](https://github.com/user-attachments/assets/00338c7f-0470-4ceb-bf06-94f7de07a0c8)
 
 ```sh
 uv run playwright open https://google.com/ --save-storage=./data/storage_state.json
@@ -94,7 +94,8 @@ uv run playwright open https://google.com/ --save-storage=./data/storage_state.j
 이거 해결 방법
 ![image](https://github.com/user-attachments/assets/01ca45c2-fda9-44fb-83fc-39daa7e52092)
 
-![](./docs/encode.png)
+![image](https://github.com/user-attachments/assets/55c502f5-0bf7-44f8-bbb4-1dc1e0c8c3c3)
+
 이것도 setup.py 사용하면 반자동으로 할 수 있습니다.
 
 못찾겠으면 intl.cpl 열어주세요.
@@ -132,7 +133,7 @@ Prompt에서 추가한 파일을 prompt.py에서 수정합니다.
 응답할 때 원하는 리턴 값을 `dict`로 받습니다.
 
 ## 4. \_\_init\_\_.py 수정
-![alt text](./docs/guide_0.png)
+![image](https://github.com/user-attachments/assets/3aed2243-92d5-4359-8515-6d2f9bfa100b)
 
 추가한 prompt에 따라 import합니다.
 
