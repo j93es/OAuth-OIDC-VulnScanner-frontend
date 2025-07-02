@@ -1,42 +1,37 @@
 import os
+import shutil
+import tempfile
 
 from lib.browser_use.func import *
+from lib.utils.config import USER_DATA_DIR
 
 # Initialize configuration
 proxy_url = setup_proxy()
 
 
-async def GetProfile():
-    storage_state_path = await setup_storage_state()
-
-    # Handle potential encoding issues with storage state file
-    try:
-        if storage_state_path and os.path.exists(storage_state_path):
-            # Test if file can be read properly, if not, skip it
-            with open(storage_state_path, "r", encoding="utf-8") as f:
-                f.read()
-            storage_state = storage_state_path
-        else:
-            print(
-                "⚠️ Storage state file not found or inaccessible, proceeding without it."
-            )
-            storage_state = None
-    except (UnicodeDecodeError, FileNotFoundError):
-        # If there's an encoding error, don't use the storage state
-        storage_state = None
+async def GetProfile(headless=False):
+    user_data_dir = None
+    if USER_DATA_DIR and os.path.isdir(USER_DATA_DIR):
+        try:
+            tmp_user_data_dir = tempfile.mkdtemp()
+            shutil.copytree(USER_DATA_DIR, tmp_user_data_dir, dirs_exist_ok=True)
+            user_data_dir = tmp_user_data_dir
+            print(f"✅ Copied user data dir to temporary location: {user_data_dir}")
+        except Exception as e:
+            print(f"❌ Failed to copy user data dir: {e}")
 
     profile = BrowserProfile(
         # Security settings
         disable_security=True,
         stealth=True,
         # Display settings
-        headless=False,
+        headless=headless,
         device_scale_factor=1,
         window_size={"width": 1600, "height": 900},
         viewport={"width": 1600, "height": 900},
         # Data persistence
-        user_data_dir=None,
-        storage_state=storage_state,
+        user_data_dir=user_data_dir,
+        #storage_state=storage_state,
         # Network settings
         proxy={"server": proxy_url} if proxy_url else None,
         # Additional arguments

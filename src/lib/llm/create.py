@@ -14,6 +14,6 @@ def CreateChatGoogle(model: str):
 
     return ChatGoogle(
         model=model,
-        temperature=0.0,
+        temperature=0.0
         # Browser Use는 내부적으로 재시도 로직을 처리합니다
     )
