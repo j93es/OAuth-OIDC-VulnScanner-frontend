@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 async def clean_resources(agent=None, session=None):
     """리소스를 정리하는 함수"""
     storage_state_temp_path = Path("./data/storage_state_temp.json").resolve()

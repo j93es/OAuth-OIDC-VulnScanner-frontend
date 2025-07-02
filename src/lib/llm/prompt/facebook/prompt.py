@@ -1,4 +1,5 @@
 import os
+
 # Extended planner prompt
 prompt = f"""
 You are a web automation agent.

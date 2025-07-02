@@ -1,13 +1,13 @@
-import os
 import json
+import os
 from pathlib import Path
-from dotenv import load_dotenv
+
 from browser_use import BrowserProfile
-import json
-import os
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv(override=True)
+
 
 async def setup_storage_state():
     """Setup browser storage state for session persistence."""
@@ -15,7 +15,7 @@ async def setup_storage_state():
     script_dir = Path(__file__).parent.parent.parent.parent
     storage_state_path = script_dir / "data" / "storage_state.json"
     storage_state_temp_path = script_dir / "data" / "storage_state_temp.json"
-    
+
     print(f"📂 Storage state path: {storage_state_path}")
     print(f"📂 Temp storage state path: {storage_state_temp_path}")
 
@@ -24,15 +24,15 @@ async def setup_storage_state():
             if storage_state_temp_path.exists():
                 storage_state_temp_path.unlink()
 
-            with open(storage_state_path, 'r') as f:
+            with open(storage_state_path, "r") as f:
                 storage_data = json.load(f)
-            
-            with open(storage_state_temp_path, 'w') as f:
+
+            with open(storage_state_temp_path, "w") as f:
                 json.dump(storage_data, f, indent=4)
-                
+
             print(f"🔄 Using existing storage state: {storage_state_temp_path}")
             return str(storage_state_temp_path)
-                
+
         except Exception as e:
             print(f"⚠️ Error processing storage state: {e}")
             if storage_state_temp_path.exists():

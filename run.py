@@ -1,9 +1,10 @@
-import sys
-import subprocess
-import os
-import requests
-from datetime import datetime
 import argparse
+import os
+import subprocess
+import sys
+from datetime import datetime
+
+import requests
 
 #!/usr/bin/env python3
 

@@ -1,8 +1,9 @@
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # 미리 정해진 파일 경로
 FILE_PATH = Path("data/log.txt")
+
 
 def logger(msg: str) -> None:
     try:
@@ -13,7 +14,7 @@ def logger(msg: str) -> None:
         """
         # 상위 디렉터리 생성 (이미 있으면 무시)
         FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # 현재 시각 구해서 포맷팅
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
