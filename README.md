@@ -34,10 +34,6 @@
 uv run setup.py
 ```
 
-
-<details>
-<summary>설치 및 설정 (레거시)</summary>
-
 uv 설치 후 다음과 같은 명령어를 입력합니다.
 
 ```sh
