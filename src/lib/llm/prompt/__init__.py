@@ -1,5 +1,7 @@
-from typing import Union, Type
+from typing import Type, Union
+
 from pydantic import BaseModel
+
 
 def get_prompt(type: str) -> tuple[str, Type[BaseModel]] | str:
     """
@@ -9,17 +11,36 @@ def get_prompt(type: str) -> tuple[str, Type[BaseModel]] | str:
     :return: 해당하는 프롬프트 문자열 또는 (프롬프트, 모델) 튜플
     """
     if type.lower() == "auth":
-        from lib.llm.prompt.get_oauth import prompt, model
+        from lib.llm.prompt._get_oauth import model, prompt
+
         return prompt, model
-    
-    # elif type.lower() in ["google", "google account"]:
-    #     from lib.llm.prompt.google import prompt, model
-    #     return prompt, model
-    
-    # elif type.lower() in ["microsoft", "microsoftonline"]:
-    #     from lib.llm.prompt.microsoft import prompt, model
-    #     return prompt, model
+
+    elif type.lower() in ["google", "google account"]:
+        from lib.llm.prompt.google import model, prompt
+
+        return prompt, model
+
+    elif type.lower() in ["microsoft", "microsoftonline"]:
+        from lib.llm.prompt.microsoft import model, prompt
+
+        return prompt, model
+
+    elif type.lower() in ["meta", "facebook"]:
+        from lib.llm.prompt.facebook import model, prompt
+
+        return prompt, model
+
+    elif type.lower() in ["apple"]:
+        from lib.llm.prompt.apple import model, prompt
+
+        return prompt, model
+
+    elif type.lower() in ["github"]:
+        from lib.llm.prompt.github import model, prompt
+
+        return prompt, model
 
     else:
-        from lib.llm.prompt.fallback import model, prompt
+        from lib.llm.prompt._fallback import model, prompt
+
         return prompt, model

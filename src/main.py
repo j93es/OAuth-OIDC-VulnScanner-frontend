@@ -1,32 +1,35 @@
-import asyncio
 import argparse
+import asyncio
 import os
+import sys
+
 from dotenv import load_dotenv
 
-from lib.utils import env_cheker
 from lib.browser_use.scanner import main_loop
-from lib.utils.progress import setup_signal_handler, progress_file
-
-# .env 파일 로드
-load_dotenv(verbose=True, override=True)
-
-# 환경 변수 체크
-env_cheker()
-
-# Laminar 초기화 (선택적)
-if os.getenv("LMNR_PROJECT_API_KEY"):
-    try:
-        from lmnr import Laminar
-        Laminar.initialize(project_api_key=os.getenv("LMNR_PROJECT_API_KEY"))
-    except ImportError:
-        print("⚠️ Laminar 라이브러리가 설치되지 않았습니다. 관련 기능이 비활성화됩니다.")
+from lib.utils import env_cheker
+from lib.utils.progress import progress_file, setup_signal_handler
 
 
-def main():
-    """애플리케이션 메인 진입점"""
-    # 시그널 핸들러 설정
-    setup_signal_handler()
+def setup_environment():
+    """환경 변수 로드 및 관련 라이브러리를 초기화합니다."""
+    # .env 파일 로드
+    load_dotenv(verbose=True, override=True)
 
+    # 환경 변수 체크
+    env_cheker()
+
+    # Laminar 초기화 (선택적)
+    if os.getenv("LMNR_PROJECT_API_KEY"):
+        try:
+            from lmnr import Laminar
+
+            Laminar.initialize(project_api_key=os.getenv("LMNR_PROJECT_API_KEY"))
+        except ImportError:
+            print("⚠️ Laminar 라이브러리가 설치되지 않았습니다. 관련 기능이 비활성화됩니다.")
+
+
+def parse_arguments():
+    """커맨드 라인 인자를 파싱합니다."""
     parser = argparse.ArgumentParser(
         prog="domain_scanner",
         description="도메인 목록 파일에서 지정한 줄 범위를 읽어 SSO 스캔을 수행합니다.",
@@ -48,11 +51,18 @@ def main():
     parser.add_argument(
         "-skh",
         "--skip-html-check",
-        action='store_true', # 플래그 형식으로 변경
+        action="store_true",
         help="HTML 페이지 체크를 건너뛰고 모든 URL을 스캔합니다.",
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    """애플리케이션 메인 진입점"""
+    setup_environment()
+    setup_signal_handler()
+    args = parse_arguments()
 
     try:
         asyncio.run(
@@ -64,15 +74,16 @@ def main():
             )
         )
     except KeyboardInterrupt:
-        # signal_handler가 처리하므로 여기서는 별도 처리 불필요
-        pass
+        print("\n프로그램이 사용자에 의해 중단되었습니다.")
+        sys.exit(1)
     finally:
         # 정상 종료 시 진행 상황 파일 삭제
         if os.path.exists(progress_file):
             try:
                 os.remove(progress_file)
+                print("진행 상황 파일이 삭제되었습니다.")
             except OSError as e:
-                print(f"오류: 진행 상황 파일을 삭제하지 못했습니다. {e}")
+                print(f"오류: 진행 상황 파일을 삭제하지 못했습니다. {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":

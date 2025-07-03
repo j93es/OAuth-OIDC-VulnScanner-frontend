@@ -1,6 +1,12 @@
 import os
 import subprocess
 import webbrowser
+import asyncio
+from browser_use import BrowserProfile, Agent
+from browser_use.llm import ChatGoogle
+from dotenv import load_dotenv
+import threading
+load_dotenv(verbose=True, override=True)
 
 os.makedirs(os.path.dirname("./data"), exist_ok=True)
 
@@ -77,20 +83,64 @@ def i_dont_like_windows():
         input("계속하려면 Enter 키를 누르세요...")
         
 
-def setup_storage():
-    print("\n🔧 쿠키와 로컬 스토리지를 설정하시겠습니까?")
-    print("👀 다음 단계에서 Senstive Data를 설정할 수 있지만 쿠키와 로컬 스토리지를 더 권장합니다.")
+async def setup_user_data():
+    print("\n📂 사용자 데이터 디렉토리를 설정하시겠습니까?")
+    print("⚠️ 사용자 데이터 디렉토리는 브라우저의 프로필 데이터를 저장하는 곳입니다.")
+    print("✅ 이 작업은 Google API Key를 설정하고 나서 진행해야만합니다.")
     if prompt_yes_no("\033[1m\033[33m선택하시려면 y를 입력하세요 (y/n):\033[0m "):
+        if os.getenv("GOOGLE_API_KEY") is None:
+            print("⚠️ Google API Key가 설정되어 있지 않습니다. 먼저 Google API Key를 설정해주세요.")
+            return
         print("======================================================")
-        print("👀 원하는 OAuth Providor를 직접 모두 로그인 한 후에 브라우저를 닫으면 설정이 완료됩니다.")
-        os.system('uv run playwright open https://google.com/ --save-storage=./data/storage_state.json')
-        print("✅ 쿠키와 로컬 스토리지 설정 완료.")
-        print("💾 ./data/storage_state.json 파일이 생성되었습니다.")
-    else:
-        print("🚫 쿠키와 로컬 스토리지 설정이 취소되었습니다.")
-    print("======================================================")
-    print("⚠️ 이후에 쿠키와 로컬 스토리지를 설정하려면, `uv run playwright open https://google.com/ --save-storage=./data/storage_state.json` 명령어를 사용하세요.\n")
+        llm = ChatGoogle(
+            model="gemini-2.0-flash",
+        )
+        initial_actions = [
+            {'go_to_url': {'url': 'https://www.google.com', 'new_tab': False}},
+            {'wait': {'seconds': 2147483647}},
+        ]
 
+        agent = Agent(
+            task="Just Wait",
+            llm=llm,
+            use_vision=False,
+            initial_actions=initial_actions,
+            browser_profile=BrowserProfile(
+                disable_security=True,
+                stealth=True,
+                headless=False,
+                device_scale_factor=1,
+                window_size={"width": 1600, "height": 900},
+                viewport={"width": 1600, "height": 900},
+                user_data_dir="./data/user_data",
+            )
+        )
+        
+        print("======================================================\n")
+        print("👉 브라우저가 열립니다. 필요한 로그인을 완료한 후 엔터키를 눌러 다음 단계로 진행하세요.")
+        input("계속하려면 Enter 키를 누르세요...\n")
+        print("======================================================")
+        
+        # 브라우저를 백그라운드에서 시작
+        def run_agent():
+            asyncio.run(agent.run())
+        
+        agent_thread = threading.Thread(target=run_agent)
+        agent_thread.daemon = True
+        agent_thread.start()
+        
+        # 사용자가 'n'을 입력할 때까지 대기
+        while True:
+            user_input = input("").strip().lower()
+            if user_input == '':
+                break
+
+        print("======================================================")
+        print("✅ 설정이 완료되었습니다.")
+    else:
+        print("🚫 설정이 취소되었습니다.")
+    print("======================================================")
+    print("⚠️ 이후에 USER_DATA_DIR을 설정하려면, .env 파일을 참고하여 USER_DATA_DIR을 설정하세요.\n")
 
 def setup_sensitive():
     print("\n🔐 Sensitive Data을 설정하시겠습니까?")
@@ -109,7 +159,6 @@ def setup_sensitive():
     print("======================================================")
     print("⚠️ 이후에 민감 정보 파일을 설정하려면, .sensitive.example.json 파일을 참고하여 .sensitive.json 파일을 생성하세요.\n")
 
-
 if __name__ == "__main__":
     # 1. .env 생성
     create_file_from_example('.env', '.env.example')
@@ -122,11 +171,12 @@ if __name__ == "__main__":
     i_dont_like_windows()
     print("=====================================================")
 
-    # 4. 쿠키와 로컬 스토리지 설정
-    setup_storage()
+    # 4. Setup User Data
+    asyncio.run(setup_user_data())
     print("=====================================================")
 
     # 5. .sensitive.json 생성
     # setup_sensitive()
     print("=====================================================")
+    print("🎉 초기 설정이 완료되었습니다! 이제 스크립트를 실행할 준비가 되었습니다.")
     print("🎉 초기 설정이 완료되었습니다! 이제 스크립트를 실행할 준비가 되었습니다.")

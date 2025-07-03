@@ -2,6 +2,7 @@ import requests
 
 from lib.utils.config import BACKEND_URL
 
+
 def notify_backend(target_url):
     # Backend에 스캔 시작을 알림
     try:

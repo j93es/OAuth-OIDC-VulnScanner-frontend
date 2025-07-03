@@ -1,12 +1,16 @@
+import os
+
+from dotenv import load_dotenv
+
 from lib.utils.config import (
     BACKEND_URL,
     GOOGLE_API_KEY,
     GOOGLE_MODEL,
     GOOGLE_PLANNER_MODEL,
 )
-import os
-from dotenv import load_dotenv
+
 load_dotenv(override=True)
+
 
 def show_info():
     print("🔧 환경 설정:")
@@ -40,7 +44,10 @@ def browser_use_version():
 def env_cheker():
     if GOOGLE_API_KEY is None:
         raise ValueError("GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
-    if GOOGLE_PLANNER_MODEL != None and (not os.getenv("ENABLE_PLANNER_MODEL_OAUTH_LOGIN") or not os.getenv("ENABLE_PLANNER_MODEL_OAUTH_LIST")):
+    if GOOGLE_PLANNER_MODEL != None and (
+        not os.getenv("ENABLE_PLANNER_MODEL_OAUTH_LOGIN")
+        or not os.getenv("ENABLE_PLANNER_MODEL_OAUTH_LIST")
+    ):
         print(
             "⚠️ GOOGLE_PLANNER_MODEL이 설정되어 있지만, ENABLE_PLANNER_MODEL_OAUTH_LOGIN 또는 ENABLE_PLANNER_MODEL_OAUTH_LIST가 활성화되지 않았습니다."
         )
@@ -50,9 +57,8 @@ def env_cheker():
         print(
             "‼️ 하지만 현재 Planner 모델을 사용하는 것이 권장되지 않습니다. 이 기능은 오작동을 일으킬 수 있습니다."
         )
-        print(
-            "⚠️ 이 경고는 1초동안 정지합니다."
-        )
+        print("⚠️ 이 경고는 1초동안 정지합니다.")
         # 이 경고는 1초동안 sleep
         import time
+
         time.sleep(1)

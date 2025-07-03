@@ -1,10 +1,21 @@
 import asyncio
-import os
 import csv
+import os
 
-from lib.utils import notify_backend, read_lines_between, is_html_url
-from lib.browser_use.agents import extract_oauth_list, test_oauth_login, start_retry_queue_processor, get_retry_queue_status
-from lib.utils.progress import current_progress, load_progress, save_progress, progress_file
+from lib.browser_use.agents import (
+    extract_oauth_list,
+    get_retry_queue_status,
+    start_retry_queue_processor,
+    test_oauth_login,
+)
+from lib.utils import is_html_url, notify_backend, read_lines_between
+from lib.utils.progress import (
+    current_progress,
+    load_progress,
+    progress_file,
+    save_progress,
+)
+
 
 async def scan_one_url(url: str, skip_html_check: bool = False):
     """URL 스캔 통합 함수: OAuth 리스트 추출 → 개별 OAuth 로그인 시도"""
@@ -45,9 +56,7 @@ async def scan_one_url(url: str, skip_html_check: bool = False):
 
     # 2단계: 각 OAuth 제공자별로 개별 로그인 시도
     for i, oauth_entry in enumerate(oauth_entries):
-        print(
-            f"\n🔄 OAuth 로그인 테스트 {i+1}/{len(oauth_entries)}: {oauth_entry}"
-        )
+        print(f"\n🔄 OAuth 로그인 테스트 {i+1}/{len(oauth_entries)}: {oauth_entry}")
 
         # OAuth 간 대기 시간
         if i > 0:
@@ -68,7 +77,7 @@ async def main_loop(
     """지정된 URL 목록에 대해 스캔을 실행하는 메인 루프"""
     # 재시도 큐 처리기 시작
     await start_retry_queue_processor()
-    
+
     target_list = read_lines_between(
         filepath=filepath, start_line=start_line, end_line=end_line
     )
@@ -82,11 +91,13 @@ async def main_loop(
     prev_progress = load_progress()
     if prev_progress and prev_progress.get("start_line") == start_line:
         print("📋 이전 진행 상황을 발견했습니다:")
-        print(f"   - 이전 완료: {prev_progress['current_index']}/{prev_progress['total']}")
+        print(
+            f"   - 이전 완료: {prev_progress['current_index']}/{prev_progress['total']}"
+        )
         print(f"   - 마지막 처리: {prev_progress.get('current_url', 'N/A')}")
 
         resume = input("이어서 진행하시겠습니까? (y/n): ").lower().strip()
-        if resume == 'y':
+        if resume == "y":
             start_index = prev_progress.get("current_index", 0)
             current_progress["current_index"] = start_index
             # 전체 개수는 원래 목록 길이로 유지
@@ -98,9 +109,13 @@ async def main_loop(
         # current_index는 전체 목록에서의 현재 위치를 나타냄
         current_url_index = current_progress["current_index"]
         current_progress["current_url"] = url
-        
-        print(f"\n🔄 Processing {current_url_index + 1}/{current_progress['total']}: {url}")
-        print(f"📍 {os.path.basename(filepath)}의 {start_line + current_url_index}번째 줄")
+
+        print(
+            f"\n🔄 Processing {current_url_index + 1}/{current_progress['total']}: {url}"
+        )
+        print(
+            f"📍 {os.path.basename(filepath)}의 {start_line + current_url_index}번째 줄"
+        )
 
         # 재시도 큐 상태 확인 및 출력
         retry_status = await get_retry_queue_status()
@@ -116,7 +131,9 @@ async def main_loop(
         # 스캔 완료 후 재시도 큐 상태 확인
         retry_status_after = await get_retry_queue_status()
         if retry_status_after["queue_length"] > 0:
-            print(f"📊 스캔 완료 후 재시도 큐 상태: {retry_status_after['queue_length']}개 작업 대기 중")
+            print(
+                f"📊 스캔 완료 후 재시도 큐 상태: {retry_status_after['queue_length']}개 작업 대기 중"
+            )
 
         # 다음 URL로 진행
         current_progress["current_index"] = current_url_index + 1
@@ -128,7 +145,9 @@ async def main_loop(
         retry_status = await get_retry_queue_status()
         if retry_status["queue_length"] == 0:
             break
-        print(f"⏳ 재시도 큐에 {retry_status['queue_length']}개 작업 남음. 30초 후 다시 확인...")
+        print(
+            f"⏳ 재시도 큐에 {retry_status['queue_length']}개 작업 남음. 30초 후 다시 확인..."
+        )
         await asyncio.sleep(30)
 
     print(f"\n🎉 모든 스캔이 완료되었습니다! ({total_count}개 URL)")

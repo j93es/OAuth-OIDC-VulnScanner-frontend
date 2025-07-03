@@ -1,5 +1,7 @@
 from typing import List
+
 from pydantic import BaseModel
+
 
 # 출력 모델
 class OAuth(BaseModel):
