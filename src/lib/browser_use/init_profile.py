@@ -14,7 +14,9 @@ async def GetProfile(headless=False):
     if USER_DATA_DIR and os.path.isdir(USER_DATA_DIR):
         try:
             tmp_user_data_dir = tempfile.mkdtemp()
-            shutil.copytree(USER_DATA_DIR, tmp_user_data_dir, dirs_exist_ok=True)
+            if os.path.exists(tmp_user_data_dir):
+                shutil.rmtree(tmp_user_data_dir)
+            shutil.copytree(USER_DATA_DIR, tmp_user_data_dir, dirs_exist_ok=False, ignore_dangling_symlinks=True)
             user_data_dir = tmp_user_data_dir
             print(f"✅ Copied user data dir to temporary location: {user_data_dir}")
         except Exception as e:
@@ -23,12 +25,11 @@ async def GetProfile(headless=False):
     profile = BrowserProfile(
         # Security settings
         disable_security=True,
-        stealth=True,
+        #stealth=True,
         # Display settings
         headless=headless,
         device_scale_factor=1,
         window_size={"width": 1600, "height": 900},
-        viewport={"width": 1600, "height": 900},
         # Data persistence
         user_data_dir=user_data_dir,
         #storage_state=storage_state,
@@ -36,6 +37,7 @@ async def GetProfile(headless=False):
         proxy={"server": proxy_url} if proxy_url else None,
         # Additional arguments
         args=get_browser_args(),
+        ignore_default_args=['--enable-automation']
     )
 
     return profile

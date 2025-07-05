@@ -27,9 +27,10 @@ def create_file_from_example(target: str, example: str) -> bool:
 
 
 def install_playwright_chrome():
-    print("\n🛠️ Playwright의 Chrome을 설치 중입니다...")
+    print("\n🛠️ Playwright의 Chromium을 설치 중입니다...")
+    print("👉 이 작업은 시간이 걸릴 수 있습니다. 잠시 기다려주세요.")
     try:
-        subprocess.run(['uv', 'run', 'playwright', 'install', 'chrome'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(['uv', 'run', 'playwright', 'install', 'chromium'], check=True)
         print("✅ Playwright Chrome 설치 완료.")
     except subprocess.CalledProcessError as e:
         if "already" in e.stdout.decode():
@@ -107,12 +108,13 @@ async def setup_user_data():
             initial_actions=initial_actions,
             browser_profile=BrowserProfile(
                 disable_security=True,
-                stealth=True,
+                #stealth=True,
                 headless=False,
                 device_scale_factor=1,
                 window_size={"width": 1600, "height": 900},
                 viewport={"width": 1600, "height": 900},
                 user_data_dir="./data/user_data",
+                ignore_default_args=['--enable-automation'],
             )
         )
         
@@ -168,8 +170,8 @@ if __name__ == "__main__":
     print("=====================================================")
 
     # 3. Windows 인코딩 문제 해결
-    i_dont_like_windows()
-    print("=====================================================")
+    #i_dont_like_windows()
+    #print("=====================================================")
 
     # 4. Setup User Data
     asyncio.run(setup_user_data())
@@ -178,5 +180,4 @@ if __name__ == "__main__":
     # 5. .sensitive.json 생성
     # setup_sensitive()
     print("=====================================================")
-    print("🎉 초기 설정이 완료되었습니다! 이제 스크립트를 실행할 준비가 되었습니다.")
     print("🎉 초기 설정이 완료되었습니다! 이제 스크립트를 실행할 준비가 되었습니다.")
