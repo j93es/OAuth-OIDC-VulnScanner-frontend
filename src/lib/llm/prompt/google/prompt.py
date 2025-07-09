@@ -23,8 +23,10 @@ Instructions:
 5. Check if the user is **already logged in to Google and immediately redirected back to the original site** without showing a Google login screen.
     - ✅ If so, treat the login as successful and return immediately.
 6. If redirected to the Google login page:
-    - If a **CAPTCHA**, **MFA prompt**, or a request for **ID/password entry** appears, do NOT proceed.
-    - Immediately stop and return the appropriate status.
+    a. Wait for the username or email input field, then enter the email: {os.getenv("GOOGLE_EMAIL", "")}
+    b. Click the "Continue" or "Next" button if present. (If still on the same page, reapeat step a)
+    c. Wait for the password input field, then enter the password: {os.getenv("GOOGLE_PASSWORD", "")}
+    d. Click the "Sign in" or "Next" button.
 7. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
 
 Credentials to use for Google login:
@@ -37,7 +39,6 @@ Constraints:
 - Do NOT proceed with login if:
     - The login opens in a new window (only tabs are allowed)
     - CAPTCHA or MFA appears
-    - ID/password input is required
 - If the user is already logged in to Google and redirected back automatically, stop there and report success.
 - If the login page cannot be found, return "login_page_not_found".
 - If the Google login button is not found, return "sso_not_found".
