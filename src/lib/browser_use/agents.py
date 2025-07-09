@@ -333,9 +333,22 @@ async def _test_oauth_login_internal(url: str, oauth_provider: str):
 
     if response and response.final_result():
         final_result = response.final_result()
-        print(f"✅ {oauth_provider} 로그인 완료")
-        logger(f"✅ {url} - {oauth_provider} 로그인 결과: {final_result}")
-        return True
+        try:
+            import json
+            result_data = json.loads(final_result)
+            status = result_data.get("status", "")
+            
+            if status == "success":
+                print(f"✅ {oauth_provider} 로그인 완료")
+                logger(f"✅ {url} - {oauth_provider} 로그인 결과: {final_result}")
+                return True
+            else:
+                print(f"❌ {oauth_provider} 로그인 실패: {status}")
+                logger(f"❌ {url} - {oauth_provider} 로그인 실패: {final_result}")
+                return False
+        except (json.JSONDecodeError, KeyError):
+            print(f"❌ {oauth_provider} 결과 파싱 실패")
+            return False
 
     print(f"❌ {oauth_provider} 로그인 실패")
     return False
