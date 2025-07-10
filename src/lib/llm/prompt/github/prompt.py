@@ -12,6 +12,7 @@ Your task is to visit the given domain and perform a full login via the **GitHub
 Instructions:
 
 1. If any cookie or privacy popups appear, dismiss or accept them.
+
 2. Navigate through the site's UI to find the **login or sign-in page** (e.g., via buttons like "Log In", "Sign In", "Get Started").
     - Only follow links within the same domain.
     - If a "Sign Up" or "Create Account" page appears instead, it is acceptable **as long as it includes a GitHub SSO option**.
@@ -24,8 +25,10 @@ Instructions:
 4. Click the **GitHub login button**.
     - ⚠️ The GitHub login flow MUST open in a **new browser tab** (not a new window or popup).
     - ❌ If the login opens in a new **window** or **popup**, do NOT continue. Immediately stop and return the appropriate status.
+
 5. Check if the user is **already logged in to GitHub and immediately redirected back to the original site** without showing a GitHub login screen.
     - ✅ If so, treat the login as successful and return immediately.
+
 6. If redirected to the GitHub login page:
     a. Wait for the username or email input field, then enter the email: {os.getenv("GITHUB_EMAIL", "")}
     b. Click the "Continue" or "Next" button if present.
@@ -34,6 +37,7 @@ Instructions:
     e. If a page appears asking to "Authorize" access for the application, click the "Authorize" button.
        - GitHub may take a while to redirect after authorization, so please wait patiently.
     - If a CAPTCHA, MFA prompt, or other interruption appears, do NOT proceed.
+    - If login fails due to incorrect credentials or authentication errors, treat as `"idpw_required"` and stop.
     - Immediately stop and return the appropriate status.
 
 
@@ -68,3 +72,4 @@ Return the result in the following format only:
 
 - Return ONLY the JSON object. Do NOT include any explanation, logging, or extra output.
 """
+
