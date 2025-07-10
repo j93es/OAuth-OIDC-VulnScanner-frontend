@@ -23,13 +23,12 @@ prompt = f"""
 5. 사용자가 **이미 Microsoft에 로그인되어 있고 즉시 원래 사이트로 리디렉션**된다면,
     - ✅ 이 경우 로그인이 성공한 것으로 간주하고 즉시 반환하세요.
 6. Microsoft 로그인 페이지로 리디렉션된 경우:
-    - **CAPTCHA**, **MFA 프롬프트**, 또는 **ID/비밀번호 입력** 요청이 나타나면 진행하지 마세요.
+    - **CAPTCHA**, **MFA 프롬프트** 요청이 나타나면 진행하지 마세요.
     - 즉시 중단하고 적절한 상태를 반환하세요.
 7. 로그인에 방해가 없다면, 원래 사이트로 리디렉션될 때까지 기다리고 최종 URL을 기록하세요.
-
-Microsoft 로그인에 사용할 자격 증명:
-- 이메일: {os.getenv("MICROSOFT_EMAIL", "")}
-- 비밀번호: {os.getenv("MICROSOFT_PASSWORD", "")}
+8. 로그인 되어있지 않으면 아래의 EMAIL과 PASSWORD를 사용하여 로그인하세요:
+- Email: {os.getenv("MICROSOFT_EMAIL", "")}
+- Password: {os.getenv("MICROSOFT_PASSWORD", "")}
 
 제약 사항:
 - 검색 엔진을 사용하거나 URL을 추측하지 마세요.
@@ -37,7 +36,7 @@ Microsoft 로그인에 사용할 자격 증명:
 - 다음과 같은 경우 로그인 절차를 진행하지 마세요:
     - 로그인이 새 창에서 열릴 때 (탭만 허용)
     - CAPTCHA 또는 MFA가 나타날 때
-    - ID/비밀번호 입력이 요구될 때
+    - ID/비밀번호 입력이 필요하지만 자동입력이 불가한 경우
 - 사용자가 이미 Microsoft에 로그인되어 자동으로 리디렉션된다면, 그 즉시 성공으로 보고 종료하세요.
 - 로그인 페이지를 찾을 수 없으면 "login_page_not_found"를 반환하세요.
 - Microsoft 로그인 버튼을 찾을 수 없으면 "sso_not_found"를 반환하세요.
