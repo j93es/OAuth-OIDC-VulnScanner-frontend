@@ -45,6 +45,10 @@ Instructions:
 
 8. Close your browser window after the login is completed.
 
+9. Login is considered successful if:
+    - You are redirected to a page that indicates successful login (e.g., a welcome page, dashboard, or account page).
+    - If a page such as a sign-up page appears, consider it a successful login and terminate immediately.
+
 Credentials to use for GitHub login:
 - Email: {os.getenv("GITHUB_EMAIL", "")}
 - Password: {os.getenv("GITHUB_PASSWORD", "")}

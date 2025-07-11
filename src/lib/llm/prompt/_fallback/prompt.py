@@ -30,9 +30,11 @@ Instructions:
 3. Click the **SSO login button**.
 4. Check if the user is **already logged and immediately redirected back to the original site** without showing a login screen.
     - ✅ If so, treat the login as successful and return immediately.
-5. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
-6. Close your browser window after the login is completed.
-
+5. If login proceeds without interruptions, complete the login and **immediately close the browser window**. Do not perform any further actions.
+6. Login is considered successful if:
+    - You are redirected to a page that indicates successful login (e.g., a welcome page, dashboard, or account page).
+    - If a page such as a sign-up page appears, consider it a successful login and terminate immediately.
+    
 Credentials to use for login:
 - Google → `{google_id}` / `{google_password}`
 - Naver → `{naver_id}` / `{naver_password}`

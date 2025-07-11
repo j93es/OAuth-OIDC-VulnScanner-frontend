@@ -73,10 +73,17 @@ def main():
     if os.path.exists(log_file):
         with open(log_file, "r") as f:
             tmp_user_data_dir = f.read().strip()
-            os.remove(tmp_user_data_dir)
-            os.remove(log_file)
-            print(f"🔧 강제로 종료되기 전에 사용한 {tmp_user_data_dir}를 삭제하였습니다.")
-        
+            try:
+                import shutil
+                if os.path.exists(tmp_user_data_dir):
+                    shutil.rmtree(tmp_user_data_dir)
+                    print(f"🔧 이전 실행의 임시 사용자 데이터 디렉토리 {tmp_user_data_dir}를 삭제하였습니다.")
+            except (PermissionError, FileNotFoundError, OSError) as e:
+                print(f"⚠️ 임시 사용자 데이터 디렉토리 삭제 실패: {e}")
+            try:
+                os.remove(log_file)
+            except OSError:
+                pass
 
     try:
         asyncio.run(
@@ -88,29 +95,26 @@ def main():
             )
         )
     except KeyboardInterrupt:
-        print("\n사용자에 의해 중단되었습니다. 현재까지의 작업을 저장합니다...")
-        from lib.utils.progress import save_progress
-
-        save_progress()
-        print(f"💾 진행 상황이 {progress_file}에 저장되었습니다.")
-        print("다음에 같은 명령어로 실행하면 이어서 진행할 수 있습니다.")
-        # terminate
+        print("\n🛑 사용자에 의해 중단되었습니다.")
+        # 진행 상황 저장
+        from lib.utils.progress import save_progress, request_shutdown
+        request_shutdown()
+        print("✅ 정리 완료.")
         sys.exit(0)
-
     except Exception as e:
         print(f"\n❌ 예상치 못한 오류가 발생했습니다: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
     finally:
-        # 정상 종료 시 진행 상황 파일 삭제 (종료 요청이 아닌 경우에만)
+        # 정상 종료 시에만 진행 상황 파일 삭제
         from lib.utils.progress import is_shutdown_requested
         if not is_shutdown_requested() and os.path.exists(progress_file):
             try:
                 os.remove(progress_file)
-                print("진행 상황 파일이 삭제되었습니다.")
+                print("✅ 진행 상황 파일이 삭제되었습니다.")
             except OSError as e:
-                print(f"오류: 진행 상황 파일을 삭제하지 못했습니다. {e}", file=sys.stderr)
+                print(f"⚠️ 진행 상황 파일 삭제 실패: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
