@@ -8,9 +8,11 @@ from lib.browser_use.agents import (
     start_retry_queue_processor,
     test_oauth_login,
 )
+from lib.browser_use.cleanup import cleanup_browser_resources
 from lib.utils import is_html_url, notify_backend, read_lines_between
 from lib.utils.progress import (
     current_progress,
+    is_shutdown_requested,
     load_progress,
     progress_file,
     save_progress,
@@ -75,80 +77,115 @@ async def main_loop(
     filepath: str, start_line: int, end_line: int, skip_html_check: bool = False
 ):
     """지정된 URL 목록에 대해 스캔을 실행하는 메인 루프"""
-    # 재시도 큐 처리기 시작
-    await start_retry_queue_processor()
+    try:
+        # 재시도 큐 처리기 시작
+        await start_retry_queue_processor()
 
-    target_list = read_lines_between(
-        filepath=filepath, start_line=start_line, end_line=end_line
-    )
-
-    # 전체 목록 길이를 저장 (재개 시에도 유지되어야 함)
-    total_count = len(target_list)
-    current_progress["total"] = total_count
-    current_progress["start_line"] = start_line
-    current_progress["current_index"] = 0
-
-    prev_progress = load_progress()
-    if prev_progress and prev_progress.get("start_line") == start_line:
-        print("📋 이전 진행 상황을 발견했습니다:")
-        print(
-            f"   - 이전 완료: {prev_progress['current_index']}/{prev_progress['total']}"
-        )
-        print(f"   - 마지막 처리: {prev_progress.get('current_url', 'N/A')}")
-
-        resume = input("이어서 진행하시겠습니까? (y/n): ").lower().strip()
-        if resume == "y":
-            start_index = prev_progress.get("current_index", 0)
-            current_progress["current_index"] = start_index
-            # 전체 개수는 원래 목록 길이로 유지
-            current_progress["total"] = total_count
-            target_list = target_list[start_index:]
-            print(f"✅ {start_index}번째부터 재개합니다.")
-
-    for i, url in enumerate(target_list):
-        # current_index는 전체 목록에서의 현재 위치를 나타냄
-        current_url_index = current_progress["current_index"]
-        current_progress["current_url"] = url
-
-        print(
-            f"\n🔄 Processing {current_url_index + 1}/{current_progress['total']}: {url}"
-        )
-        print(
-            f"📍 {os.path.basename(filepath)}의 {start_line + current_url_index}번째 줄"
+        target_list = read_lines_between(
+            filepath=filepath, start_line=start_line, end_line=end_line
         )
 
-        # 재시도 큐 상태 확인 및 출력
-        retry_status = await get_retry_queue_status()
-        if retry_status["queue_length"] > 0:
-            print(f"⏳ 재시도 큐에 {retry_status['queue_length']}개 작업 대기 중")
+        # 전체 목록 길이를 저장 (재개 시에도 유지되어야 함)
+        total_count = len(target_list)
+        current_progress["total"] = total_count
+        current_progress["start_line"] = start_line
+        current_progress["current_index"] = 0
 
-        if i > 0:
-            print("⏳ API 쿼터 보호를 위해 30초 대기 중...")
-            await asyncio.sleep(30)
-
-        await scan_one_url(url, skip_html_check=skip_html_check)
-
-        # 스캔 완료 후 재시도 큐 상태 확인
-        retry_status_after = await get_retry_queue_status()
-        if retry_status_after["queue_length"] > 0:
+        prev_progress = load_progress()
+        if prev_progress and prev_progress.get("start_line") == start_line:
+            print("📋 이전 진행 상황을 발견했습니다:")
             print(
-                f"📊 스캔 완료 후 재시도 큐 상태: {retry_status_after['queue_length']}개 작업 대기 중"
+                f"   - 이전 완료: {prev_progress['current_index']}/{prev_progress['total']}"
+            )
+            print(f"   - 마지막 처리: {prev_progress.get('current_url', 'N/A')}")
+
+            resume = input("이어서 진행하시겠습니까? (y/n): ").lower().strip()
+            if resume == "y":
+                start_index = prev_progress.get("current_index", 0)
+                current_progress["current_index"] = start_index
+                # 전체 개수는 원래 목록 길이로 유지
+                current_progress["total"] = total_count
+                target_list = target_list[start_index:]
+                print(f"✅ {start_index}번째부터 재개합니다.")
+
+        for i, url in enumerate(target_list):
+            # 종료 요청 체크
+            if is_shutdown_requested():
+                print("🛑 종료 요청으로 인해 스캔을 중단합니다.")
+                break
+                
+            # current_index는 전체 목록에서의 현재 위치를 나타냄
+            current_url_index = current_progress["current_index"]
+            current_progress["current_url"] = url
+
+            print(
+                f"\n🔄 Processing {current_url_index + 1}/{current_progress['total']}: {url}"
+            )
+            print(
+                f"📍 {os.path.basename(filepath)}의 {start_line + current_url_index}번째 줄"
             )
 
-        # 다음 URL로 진행
-        current_progress["current_index"] = current_url_index + 1
-        save_progress()
+            # 재시도 큐 상태 확인 및 출력
+            retry_status = await get_retry_queue_status()
+            if retry_status["queue_length"] > 0:
+                print(f"⏳ 재시도 큐에 {retry_status['queue_length']}개 작업 대기 중")
 
-    # 모든 URL 처리 완료 후 재시도 큐가 빌 때까지 대기
-    print("\n🔄 모든 URL 처리 완료. 재시도 큐 처리 대기 중...")
-    while True:
-        retry_status = await get_retry_queue_status()
-        if retry_status["queue_length"] == 0:
-            break
-        print(
-            f"⏳ 재시도 큐에 {retry_status['queue_length']}개 작업 남음. 30초 후 다시 확인..."
-        )
-        await asyncio.sleep(30)
+            if i > 0:
+                print("⏳ API 쿼터 보호를 위해 30초 대기 중...")
+                # 대기 중에도 종료 요청 체크
+                for _ in range(30):
+                    if is_shutdown_requested():
+                        print("🛑 대기 중 종료 요청으로 스캔을 중단합니다.")
+                        return
+                    await asyncio.sleep(1)
 
-    print(f"\n🎉 모든 스캔이 완료되었습니다! ({total_count}개 URL)")
-    print("🎉 재시도 큐도 모두 처리되었습니다!")
+            try:
+                await scan_one_url(url, skip_html_check=skip_html_check)
+            except Exception as e:
+                print(f"❌ {url} 스캔 중 오류 발생: {e}")
+                continue
+
+            # 스캔 완료 후 재시도 큐 상태 확인
+            retry_status_after = await get_retry_queue_status()
+            if retry_status_after["queue_length"] > 0:
+                print(
+                    f"📊 스캔 완료 후 재시도 큐 상태: {retry_status_after['queue_length']}개 작업 대기 중"
+                )
+
+            # 다음 URL로 진행
+            current_progress["current_index"] = current_url_index + 1
+            save_progress()
+
+        # 모든 URL 처리 완료 후 재시도 큐가 빌 때까지 대기
+        if not is_shutdown_requested():
+            print("\n🔄 모든 URL 처리 완료. 재시도 큐 처리 대기 중...")
+            while True:
+                if is_shutdown_requested():
+                    print("🛑 재시도 큐 대기 중 종료 요청으로 중단합니다.")
+                    break
+                    
+                retry_status = await get_retry_queue_status()
+                if retry_status["queue_length"] == 0:
+                    break
+                print(
+                    f"⏳ 재시도 큐에 {retry_status['queue_length']}개 작업 남음. 30초 후 다시 확인..."
+                )
+                # 대기 중에도 종료 요청 체크
+                for _ in range(30):
+                    if is_shutdown_requested():
+                        print("🛑 재시도 큐 대기 중 종료 요청으로 중단합니다.")
+                        break
+                    await asyncio.sleep(1)
+
+            if not is_shutdown_requested():
+                print(f"\n🎉 모든 스캔이 완료되었습니다! ({total_count}개 URL)")
+                print("🎉 재시도 큐도 모두 처리되었습니다!")
+            else:
+                print("\n🛑 종료 요청으로 인해 스캔이 중단되었습니다.")
+        else:
+            print("\n🛑 종료 요청으로 인해 스캔이 중단되었습니다.")
+            
+    finally:
+        # 항상 리소스 정리
+        print("🔄 브라우저 리소스를 정리합니다...")
+        await cleanup_browser_resources()

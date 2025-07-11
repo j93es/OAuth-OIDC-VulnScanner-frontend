@@ -26,6 +26,8 @@ def setup_environment():
             Laminar.initialize(project_api_key=os.getenv("LMNR_PROJECT_API_KEY"))
         except ImportError:
             print("⚠️ Laminar 라이브러리가 설치되지 않았습니다. 관련 기능이 비활성화됩니다.")
+    else:
+        print("⚠️ LMNR_PROJECT_API_KEY 환경 변수가 설정되지 않았습니다. Laminar 기능이 비활성화됩니다.")
 
 
 def parse_arguments():
@@ -64,6 +66,25 @@ def main():
     setup_signal_handler()
     args = parse_arguments()
 
+    # read and remove user data path
+    log_file = os.path.join("./data", "userdata.dump")
+    if not os.path.exists("./data"):
+        os.makedirs("./data")
+    if os.path.exists(log_file):
+        with open(log_file, "r") as f:
+            tmp_user_data_dir = f.read().strip()
+            try:
+                import shutil
+                if os.path.exists(tmp_user_data_dir):
+                    shutil.rmtree(tmp_user_data_dir)
+                    print(f"🔧 이전 실행의 임시 사용자 데이터 디렉토리 {tmp_user_data_dir}를 삭제하였습니다.")
+            except (PermissionError, FileNotFoundError, OSError) as e:
+                print(f"⚠️ 임시 사용자 데이터 디렉토리 삭제 실패: {e}")
+            try:
+                os.remove(log_file)
+            except OSError:
+                pass
+
     try:
         asyncio.run(
             main_loop(
@@ -74,16 +95,26 @@ def main():
             )
         )
     except KeyboardInterrupt:
-        print("\n프로그램이 사용자에 의해 중단되었습니다.")
+        print("\n🛑 사용자에 의해 중단되었습니다.")
+        # 진행 상황 저장
+        from lib.utils.progress import save_progress, request_shutdown
+        request_shutdown()
+        print("✅ 정리 완료.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n❌ 예상치 못한 오류가 발생했습니다: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
     finally:
-        # 정상 종료 시 진행 상황 파일 삭제
-        if os.path.exists(progress_file):
+        # 정상 종료 시에만 진행 상황 파일 삭제
+        from lib.utils.progress import is_shutdown_requested
+        if not is_shutdown_requested() and os.path.exists(progress_file):
             try:
                 os.remove(progress_file)
-                print("진행 상황 파일이 삭제되었습니다.")
+                print("✅ 진행 상황 파일이 삭제되었습니다.")
             except OSError as e:
-                print(f"오류: 진행 상황 파일을 삭제하지 못했습니다. {e}", file=sys.stderr)
+                print(f"⚠️ 진행 상황 파일 삭제 실패: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":

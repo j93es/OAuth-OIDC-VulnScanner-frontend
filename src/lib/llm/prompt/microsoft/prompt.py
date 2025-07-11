@@ -29,6 +29,10 @@ prompt = f"""
 8. 로그인 되어있지 않으면 아래의 EMAIL과 PASSWORD를 사용하여 로그인하세요:
 - Email: {os.getenv("MICROSOFT_EMAIL", "")}
 - Password: {os.getenv("MICROSOFT_PASSWORD", "")}
+9. 로그인 완료 후 브라우저 창을 닫으세요.
+10. Login is considered successful if:
+    - You are redirected to a page that indicates successful login (e.g., a welcome page, dashboard, or account page).
+    - If a page such as a sign-up page appears, consider it a successful login and terminate immediately.
 
 제약 사항:
 - 검색 엔진을 사용하거나 URL을 추측하지 마세요.

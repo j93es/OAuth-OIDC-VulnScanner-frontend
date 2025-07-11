@@ -26,7 +26,10 @@ Instructions:
     a. If a **CAPTCHA**, complete it.
     b. If a **MFA prompt**, or a request for **ID/password entry** appears, do NOT proceed - Immediately stop and return the appropriate status.
     - If a **"Continue"**, **"Trust"**, **"Authorize"**, or **"Allow"** button is displayed, click it to grant consent.
-7. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
+7. If login proceeds without interruptions, complete the login and **immediately close the browser window**. Do not perform any further actions.
+8. Login is considered successful if:
+    - You are redirected to a page that indicates successful login (e.g., a welcome page, dashboard, or account page).
+    - If a page such as a sign-up page appears, consider it a successful login and terminate immediately.
 
 Credentials to use for Apple login:
 - Email: {os.getenv("APPLE_EMAIL", "")}

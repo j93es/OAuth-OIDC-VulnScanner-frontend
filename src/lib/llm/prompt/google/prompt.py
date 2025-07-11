@@ -28,6 +28,10 @@ Instructions:
     c. Wait for the password input field, then enter the password: {os.getenv("GOOGLE_PASSWORD", "")}
     d. Click the "Sign in" or "Next" button.
 7. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
+8. Close your browser window after the login is completed.
+9. Login is considered successful if:
+    - You are redirected to a page that indicates successful login (e.g., a welcome page, dashboard, or account page).
+    - If a page such as a sign-up page appears, consider it a successful login and terminate immediately.
 
 Credentials to use for Google login:
 - Email: {os.getenv("GOOGLE_EMAIL", "")}
