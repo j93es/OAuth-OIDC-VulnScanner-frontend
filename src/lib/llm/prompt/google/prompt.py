@@ -28,6 +28,7 @@ Instructions:
     c. Wait for the password input field, then enter the password: {os.getenv("GOOGLE_PASSWORD", "")}
     d. Click the "Sign in" or "Next" button.
 7. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
+8. Close your browser window after the login is completed.
 
 Credentials to use for Google login:
 - Email: {os.getenv("GOOGLE_EMAIL", "")}

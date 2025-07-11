@@ -27,6 +27,7 @@ Instructions:
     b. If a **MFA prompt**, or a request for **ID/password entry** appears, do NOT proceed - Immediately stop and return the appropriate status.
     - If a **"Continue"**, **"Trust"**, **"Authorize"**, or **"Allow"** button is displayed, click it to grant consent.
 7. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
+8. Close your browser window after the login is completed.
 
 Credentials to use for Apple login:
 - Email: {os.getenv("APPLE_EMAIL", "")}

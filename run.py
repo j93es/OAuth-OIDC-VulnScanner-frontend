@@ -1,5 +1,6 @@
 import argparse
 import os
+import signal
 import subprocess
 import sys
 from datetime import datetime
@@ -35,6 +36,7 @@ def run_script(start_line, end_line, skh_option):
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"[{current_time}] Processing lines {start_line} to {end_line}...")
 
+    process = None
     try:
         command = [
             "uv", "run", PYTHON_SCRIPT,
@@ -45,7 +47,13 @@ def run_script(start_line, end_line, skh_option):
         if skh_option:
             command.append("--skip-html-check")
 
-        subprocess.run(command, check=True)
+        # KeyboardInterrupt를 subprocess에 전달하도록 수정
+        process = subprocess.Popen(command)
+        process.wait()
+        
+        if process.returncode != 0:
+            print("Python 스크립트 실행 실패")
+            sys.exit(1)
     except subprocess.CalledProcessError:
         print("Python 스크립트 실행 실패")
         sys.exit(1)

@@ -31,6 +31,7 @@ Instructions:
 4. Check if the user is **already logged and immediately redirected back to the original site** without showing a login screen.
     - ✅ If so, treat the login as successful and return immediately.
 5. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
+6. Close your browser window after the login is completed.
 
 Credentials to use for login:
 - Google → `{google_id}` / `{google_password}`
@@ -38,7 +39,6 @@ Credentials to use for login:
 - GitHub → `{github_id}` / `{github_password}`
 - facebook → `{facebook_id}` / `{facebook_password}`
 - Microsoft → `{microsoft_id}` / `{microsoft_password}`
-If credentials for a provider are not provided, skip the login attempt for that provider.
 
 Constraints:
 - Do NOT use search engines or guess URLs.

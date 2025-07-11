@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
@@ -8,7 +9,6 @@ from typing import Any, Dict, Optional
 from browser_use import Agent, BrowserSession, Controller
 from patchright.async_api import async_playwright as async_patchright
 
-from lib.browser_use.clean_resources import clean_resources
 from lib.browser_use.init_profile import GetProfile
 from lib.browser_use.sensitive_data import GetSensitiveData
 from lib.llm import CreateChatGoogle, get_prompt
@@ -147,15 +147,15 @@ async def _run_agent_with_retry(agent_config):
 
     while try_cnt < 3:
         try:
+            Profile = await GetProfile(headless=headless)
             session = BrowserSession(
                 playwright=(await async_patchright().start()),
-                browser_profile=await GetProfile(headless=headless),
+                browser_profile=Profile[0],
             )
 
             agent = Agent(browser_session=session, **agent_config["agent_params"])
 
             response = await agent.run()
-            await clean_resources(agent, session)
 
             if any(
                 keyword in str(response)
@@ -179,12 +179,15 @@ async def _run_agent_with_retry(agent_config):
                 )
                 await add_to_retry_queue(task)
                 return None
+            
+            # remove profile
+            if Profile[1]:
+                shutil.rmtree(Profile[1], ignore_errors=True)
+                print(f"🗑️ 임시 프로필 디렉토리 삭제 완료: {Profile[1]}")
 
             return response
 
         except Exception as e:
-            await clean_resources(agent, session)
-
             # 일반 에러 처리
             try_cnt += 1
             if try_cnt >= 3:

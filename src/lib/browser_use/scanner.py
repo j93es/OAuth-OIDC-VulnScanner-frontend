@@ -14,6 +14,7 @@ from lib.utils.progress import (
     load_progress,
     progress_file,
     save_progress,
+    is_shutdown_requested,
 )
 
 
@@ -106,6 +107,11 @@ async def main_loop(
             print(f"✅ {start_index}번째부터 재개합니다.")
 
     for i, url in enumerate(target_list):
+        # 종료 요청 체크
+        if is_shutdown_requested():
+            print("🛑 종료 요청으로 인해 스캔을 중단합니다.")
+            break
+            
         # current_index는 전체 목록에서의 현재 위치를 나타냄
         current_url_index = current_progress["current_index"]
         current_progress["current_url"] = url
@@ -124,9 +130,18 @@ async def main_loop(
 
         if i > 0:
             print("⏳ API 쿼터 보호를 위해 30초 대기 중...")
-            await asyncio.sleep(30)
+            # 대기 중에도 종료 요청 체크
+            for _ in range(30):
+                if is_shutdown_requested():
+                    print("🛑 대기 중 종료 요청으로 스캔을 중단합니다.")
+                    return
+                await asyncio.sleep(1)
 
-        await scan_one_url(url, skip_html_check=skip_html_check)
+        try:
+            await scan_one_url(url, skip_html_check=skip_html_check)
+        except Exception as e:
+            print(f"❌ {url} 스캔 중 오류 발생: {e}")
+            continue
 
         # 스캔 완료 후 재시도 큐 상태 확인
         retry_status_after = await get_retry_queue_status()
@@ -140,15 +155,27 @@ async def main_loop(
         save_progress()
 
     # 모든 URL 처리 완료 후 재시도 큐가 빌 때까지 대기
-    print("\n🔄 모든 URL 처리 완료. 재시도 큐 처리 대기 중...")
-    while True:
-        retry_status = await get_retry_queue_status()
-        if retry_status["queue_length"] == 0:
-            break
-        print(
-            f"⏳ 재시도 큐에 {retry_status['queue_length']}개 작업 남음. 30초 후 다시 확인..."
-        )
-        await asyncio.sleep(30)
+    if not is_shutdown_requested():
+        print("\n🔄 모든 URL 처리 완료. 재시도 큐 처리 대기 중...")
+        while True:
+            if is_shutdown_requested():
+                print("🛑 재시도 큐 대기 중 종료 요청으로 중단합니다.")
+                return
+                
+            retry_status = await get_retry_queue_status()
+            if retry_status["queue_length"] == 0:
+                break
+            print(
+                f"⏳ 재시도 큐에 {retry_status['queue_length']}개 작업 남음. 30초 후 다시 확인..."
+            )
+            # 대기 중에도 종료 요청 체크
+            for _ in range(30):
+                if is_shutdown_requested():
+                    print("🛑 재시도 큐 대기 중 종료 요청으로 중단합니다.")
+                    return
+                await asyncio.sleep(1)
 
-    print(f"\n🎉 모든 스캔이 완료되었습니다! ({total_count}개 URL)")
-    print("🎉 재시도 큐도 모두 처리되었습니다!")
+        print(f"\n🎉 모든 스캔이 완료되었습니다! ({total_count}개 URL)")
+        print("🎉 재시도 큐도 모두 처리되었습니다!")
+    else:
+        print("\n🛑 종료 요청으로 인해 스캔이 중단되었습니다.")

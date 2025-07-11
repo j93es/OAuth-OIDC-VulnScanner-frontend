@@ -39,6 +39,7 @@ Instructions:
        - Password: "TestPassword123!"
      - Click "Create account", "Sign up", or "Complete registration" button
    - Only after completing ALL steps, record the final URL as successful login
+9. If all steps are completed successfully, close your browser window.
 
 Credentials to use for Facebook login (if needed):
 - Email/Phone: {os.getenv("FACEBOOK_EMAIL", "")}

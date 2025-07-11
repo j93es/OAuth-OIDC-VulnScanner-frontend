@@ -43,6 +43,8 @@ Instructions:
 
 7. If login proceeds without interruptions, wait for redirection back to the original site and record the final URL.
 
+8. Close your browser window after the login is completed.
+
 Credentials to use for GitHub login:
 - Email: {os.getenv("GITHUB_EMAIL", "")}
 - Password: {os.getenv("GITHUB_PASSWORD", "")}
