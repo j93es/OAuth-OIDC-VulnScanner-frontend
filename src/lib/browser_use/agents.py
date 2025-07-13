@@ -181,7 +181,9 @@ async def _run_agent_with_retry(agent_config):
                 return None
             
             # remove profile
-            if Profile[1]:
+            print(Profile)
+            if Profile[1] and isinstance(Profile[1], str):
+                print(1)
                 shutil.rmtree(Profile[1], ignore_errors=True)
                 print(f"🗑️ 임시 프로필 디렉토리 삭제 완료: {Profile[1]}")
 
